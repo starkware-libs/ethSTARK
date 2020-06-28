@@ -1,0 +1,6 @@
+add_library(rescue_statement rescue_statement.cc)
+target_link_libraries(rescue_statement rescue_air json)
+
+add_executable(rescue_statement_test rescue_statement_test.cc)
+target_link_libraries(rescue_statement_test rescue_statement rescue_air json starkware_gtest)
+add_test(rescue_statement_test rescue_statement_test)

@@ -1,0 +1,10 @@
+add_library(air_test_utils air_test_utils.cc)
+target_link_libraries(air_test_utils starkware_gtest algebra fields)
+
+add_executable(air_test_utils_test air_test_utils_test.cc)
+target_link_libraries(air_test_utils_test air_test_utils periodic_column neighbors algebra starkware_gtest)
+add_test(air_test_utils_test air_test_utils_test)
+
+add_subdirectory(boundary)
+add_subdirectory(test_air)
+add_subdirectory(rescue)

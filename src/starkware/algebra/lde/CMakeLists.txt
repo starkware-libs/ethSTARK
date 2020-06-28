@@ -1,0 +1,10 @@
+add_library(cached_lde_manager INTERFACE)
+target_link_libraries(cached_lde_manager INTERFACE)
+
+add_executable(lde_manager_test lde_manager_test.cc)
+target_link_libraries(lde_manager_test algebra starkware_gtest)
+add_test(lde_manager_test lde_manager_test)
+
+add_executable(cached_lde_manager_test cached_lde_manager_test.cc)
+target_link_libraries(cached_lde_manager_test cached_lde_manager algebra starkware_gtest)
+add_test(cached_lde_manager_test cached_lde_manager_test)

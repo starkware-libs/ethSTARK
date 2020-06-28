@@ -1,0 +1,15 @@
+{
+    "stark": {
+        "fri": {
+            "fri_step_list": [
+                1,
+                2,
+                3
+            ],
+            "last_layer_degree_bound": 1,
+            "n_queries": 30,
+            "proof_of_work_bits": 20
+        },
+        "log_n_cosets": 2
+    }
+}

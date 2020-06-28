@@ -1,0 +1,10 @@
+add_library(rescue_air rescue_air.cc)
+target_link_libraries(rescue_air composition_polynomial)
+
+add_executable(rescue_air_test rescue_air_test.cc)
+target_link_libraries(rescue_air_test starkware_gtest algebra rescue_air air_test_utils)
+add_test(rescue_air_test rescue_air_test)
+
+add_executable(rescue_constants_test rescue_constants_test.cc)
+target_link_libraries(rescue_constants_test algebra starkware_gtest)
+add_test(rescue_constants_test rescue_constants_test)

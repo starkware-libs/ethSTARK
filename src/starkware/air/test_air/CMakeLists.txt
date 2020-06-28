@@ -1,0 +1,6 @@
+add_library(test_air test_air.cc)
+target_link_libraries(test_air composition_polynomial)
+
+add_executable(test_air_test test_air_test.cc)
+target_link_libraries(test_air_test test_air air_test_utils algebra starkware_gtest)
+add_test(test_air_test test_air_test)

@@ -1,0 +1,2 @@
+add_library(starkware_gbenchmark STATIC gbenchmark_main.cc)
+target_link_libraries(starkware_gbenchmark starkware_common third_party benchmark)

@@ -1,0 +1,10 @@
+add_library(fields base_field_element.cc)
+target_link_libraries(fields to_from_string prng)
+
+add_executable(base_field_element_test base_field_element_test.cc)
+target_link_libraries(base_field_element_test fields starkware_gtest)
+add_test(base_field_element_test base_field_element_test)
+
+add_executable(extension_field_element_test extension_field_element_test.cc)
+target_link_libraries(extension_field_element_test fields starkware_gtest)
+add_test(extension_field_element_test extension_field_element_test)

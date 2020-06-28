@@ -1,0 +1,10 @@
+add_library(domains evaluation_domain.cc)
+target_link_libraries(domains third_party)
+
+add_executable(coset_test coset_test.cc)
+target_link_libraries(coset_test algebra starkware_gtest)
+add_test(coset_test coset_test)
+
+add_executable(evaluation_domain_test evaluation_domain_test.cc)
+target_link_libraries(evaluation_domain_test algebra starkware_gtest)
+add_test(evaluation_domain_test evaluation_domain_test)
