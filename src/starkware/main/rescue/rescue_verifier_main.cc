@@ -33,6 +33,7 @@ struct VerifierInput {
 VerifierInput GetVerifierInput() {
   JsonValue input = JsonValue::FromFile(FLAGS_in_file);
   std::string proof_hex = input["proof_hex"].AsString();
+  ASSERT_RELEASE(!proof_hex.empty(), "Proof must not be empty.");
   std::vector<std::byte> proof((proof_hex.size() - 1) / 2);
   starkware::HexStringToBytes(proof_hex, proof);
   return {input["public_input"], input["proof_parameters"], proof};

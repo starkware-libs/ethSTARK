@@ -1,5 +1,6 @@
 #include "starkware/statement/rescue/rescue_statement.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "starkware/utils/json_builder.h"
@@ -11,10 +12,12 @@ namespace starkware {
 RescueStatement::RescueStatement(
     const JsonValue& public_input, std::optional<JsonValue> private_input)
     : Statement(std::move(private_input)),
-      output_({public_input["output"][0].AsFieldElement<BaseFieldElement>(),
-               public_input["output"][1].AsFieldElement<BaseFieldElement>(),
-               public_input["output"][2].AsFieldElement<BaseFieldElement>(),
-               public_input["output"][3].AsFieldElement<BaseFieldElement>()}),
+      output_({
+          public_input["output"][0].AsFieldElement<BaseFieldElement>(),
+          public_input["output"][1].AsFieldElement<BaseFieldElement>(),
+          public_input["output"][2].AsFieldElement<BaseFieldElement>(),
+          public_input["output"][3].AsFieldElement<BaseFieldElement>(),
+      }),
       chain_length_(public_input["chain_length"].AsSizeT()) {
   ASSERT_RELEASE(chain_length_ > 0, "Chain length must be positive.");
   ASSERT_RELEASE(
@@ -31,19 +34,27 @@ const Air& RescueStatement::GetAir() {
 }
 
 const std::vector<std::byte> RescueStatement::GetInitialHashChainSeed() const {
+  using std::literals::string_literals::operator""s;
+  const std::string rescue_string = "Rescue hash chain\x00"s;
   const size_t output_element_bytes = BaseFieldElement::SizeInBytes();
   const size_t chain_length_bytes = sizeof(uint64_t);
   std::vector<std::byte> randomness_seed(
-      output_element_bytes * RescueAir::kWordSize + chain_length_bytes);
+      rescue_string.size() + output_element_bytes * RescueAir::kWordSize + chain_length_bytes);
+  std::transform(rescue_string.begin(), rescue_string.end(), randomness_seed.begin(), [](char c) {
+    return std::byte(c);
+  });
   for (size_t i = 0; i < output_.size(); i++) {
     const auto& val = output_[i];
     val.ToBytes(
-        gsl::make_span(randomness_seed).subspan(i * output_element_bytes, output_element_bytes));
+        gsl::make_span(randomness_seed)
+            .subspan(rescue_string.size() + i * output_element_bytes, output_element_bytes));
   }
   Serialize(
       uint64_t(chain_length_),
       gsl::make_span(randomness_seed)
-          .subspan(RescueAir::kWordSize * output_element_bytes, chain_length_bytes));
+          .subspan(
+              rescue_string.size() + RescueAir::kWordSize * output_element_bytes,
+              chain_length_bytes));
   return randomness_seed;
 }
 
@@ -60,10 +71,12 @@ typename RescueStatement::WitnessT RescueStatement::ParseWitness(const JsonValue
   typename RescueStatement::WitnessT res;
   res.reserve(witness.ArrayLength());
   for (size_t i = 0; i < witness.ArrayLength(); i++) {
-    res.push_back({witness[i][0].AsFieldElement<BaseFieldElement>(),
-                   witness[i][1].AsFieldElement<BaseFieldElement>(),
-                   witness[i][2].AsFieldElement<BaseFieldElement>(),
-                   witness[i][3].AsFieldElement<BaseFieldElement>()});
+    res.push_back({
+        witness[i][0].AsFieldElement<BaseFieldElement>(),
+        witness[i][1].AsFieldElement<BaseFieldElement>(),
+        witness[i][2].AsFieldElement<BaseFieldElement>(),
+        witness[i][3].AsFieldElement<BaseFieldElement>(),
+    });
   }
   return res;
 }

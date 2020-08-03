@@ -45,8 +45,9 @@ well as explaining the meaning and usage of the prover inputs.
 -----------------
 ## [2. Disclaimers](#Glossary)
 
-1. Note that at the time of writing, the code presented in this project has yet to undergo a full
-security audit by a third party.
+1. The code presented in this project has been audited by
+[PeckShield Inc.](https://peckshield.com/en), to view their report, click
+[here](https://starkware.co/peckshield_ethstark_audit/).
 
 2. The system is designed to guarantee up to 80 bits of security, depending on hardcoded values and
 on several parameters given as input. Refer to the [[Measuring Security](#7-Measuring-Security)]
@@ -282,4 +283,4 @@ size 122 bits, and trace_length = (chain_length / 3) * 32 rounded up to nearest 
 
 Additionally, there is a proven security bound on the soundness of the FRI protocol (used as the LDT
 component of the STARK protocol), for more information refer to section [7.2] in this paper:
-https://eprint.iacr.org/2020/654 .
+[https://eprint.iacr.org/2020/654](https://eprint.iacr.org/2020/654).

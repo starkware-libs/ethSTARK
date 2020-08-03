@@ -31,7 +31,7 @@ class RescueStatement : public Statement {
   const Air& GetAir() override;
 
   /*
-    Returns the serialization of: [output, chain_length],
+    Returns the serialization of: ["Rescue hash chain", output, chain_length],
     where chain_length and each of the field elements in output are written as 8 bytes.
   */
   const std::vector<std::byte> GetInitialHashChainSeed() const override;

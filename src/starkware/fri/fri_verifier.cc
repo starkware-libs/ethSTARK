@@ -48,6 +48,11 @@ void FriVerifier::ReadLastLayerCoefficients() {
   const size_t fri_step_sum = Sum(params_->fri_step_list);
   const uint64_t last_layer_size = params_->GetLayerDomainSize(fri_step_sum);
 
+  ASSERT_RELEASE(
+      params_->last_layer_degree_bound <= last_layer_size,
+      "last_layer_degree_bound (" + std::to_string(params_->last_layer_degree_bound) +
+          ") must be <= last_layer_size (" + std::to_string(last_layer_size) + ").");
+
   // Allocate a vector of zeros of size last_layer_size and fill the first last_layer_degree_bound
   // elements.
   std::vector<ExtensionFieldElement> last_layer_coefficients_vector(
@@ -55,11 +60,6 @@ void FriVerifier::ReadLastLayerCoefficients() {
   channel_->ReceiveFieldElementSpan(
       gsl::make_span(last_layer_coefficients_vector).subspan(0, params_->last_layer_degree_bound),
       "Coefficients");
-
-  ASSERT_RELEASE(
-      params_->last_layer_degree_bound <= last_layer_size,
-      "last_layer_degree_bound (" + std::to_string(params_->last_layer_degree_bound) +
-          ") must be <= last_layer_size (" + std::to_string(last_layer_size) + ").");
 
   size_t last_layer_basis_index = Sum(params_->fri_step_list);
   const Coset lde_domain = params_->GetCosetForLayer(last_layer_basis_index);

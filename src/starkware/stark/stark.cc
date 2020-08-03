@@ -101,11 +101,16 @@ StarkParameters StarkParameters::FromJson(const JsonValue& json, MaybeOwnedPtr<c
   const uint64_t trace_length = air->TraceLength();
   const size_t log_trace_length = SafeLog2(trace_length);
   const size_t log_n_cosets = json["log_n_cosets"].AsSizeT();
+  const uint64_t log_max_constraint_degree =
+      SafeLog2(SafeDiv(air->GetCompositionPolynomialDegreeBound(), trace_length));
+  ASSERT_RELEASE(
+      log_n_cosets >= log_max_constraint_degree,
+      "The blowup factor must be at least " + std::to_string(log_max_constraint_degree) + ".");
+  ASSERT_RELEASE(
+      log_n_cosets <= 10, "The blowup factor cannot be greater than 1024 (log_n_cosets <= 10).");
   const size_t n_cosets = Pow2(log_n_cosets);
 
-  const Coset evaluation_domain(Pow2(log_trace_length + log_n_cosets), BaseFieldElement::One());
-
-  FriParameters fri_params = FriParameters::FromJson(json["fri"], evaluation_domain);
+  FriParameters fri_params = FriParameters::FromJson(json["fri"], log_trace_length, log_n_cosets);
 
   return StarkParameters(
       n_cosets, trace_length, std::move(air), UseMovedValue(std::move(fri_params)));

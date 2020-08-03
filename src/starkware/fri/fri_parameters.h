@@ -56,9 +56,11 @@ struct FriParameters {
   size_t proof_of_work_bits;
 
   /*
-    Creates an instance from a given JSON representation and an evaluation domain.
+    Creates an instance from a given JSON representation, log(trace length) and log(number
+    of cosets in the evaluation domain).
   */
-  static FriParameters FromJson(const JsonValue& json, const Coset& domain);
+  static FriParameters FromJson(
+      const JsonValue& json, size_t log_trace_length, size_t log_n_cosets);
 
   /*
     Returns a coset representing the domain of the FRI layer at a given index.
@@ -78,12 +80,45 @@ struct FriParameters {
   }
 };
 
-inline FriParameters FriParameters::FromJson(const JsonValue& json, const Coset& domain) {
-  return {
-      json["fri_step_list"].AsSizeTVector(), json["last_layer_degree_bound"].AsSizeT(),
-      json["n_queries"].AsSizeT(),           domain,
-      json["proof_of_work_bits"].AsSizeT(),
-  };
+inline FriParameters FriParameters::FromJson(
+    const JsonValue& json, size_t log_trace_length, size_t log_n_cosets) {
+  const std::vector<size_t> fri_step_list = json["fri_step_list"].AsSizeTVector();
+  ASSERT_RELEASE(!fri_step_list.empty(), "fri_step_list must not be empty.");
+  size_t cumulative_fri_step = 0;
+  for (size_t i = 0; i < fri_step_list.size(); ++i) {
+    ASSERT_RELEASE(
+        fri_step_list.at(i) > 0 || i == 0, "fri_step_list at each layer must be at least 1.");
+    ASSERT_RELEASE(
+        fri_step_list.at(i) <= 10, "fri_step_list at each layer cannot be greater than 10.");
+    cumulative_fri_step += fri_step_list.at(i);
+  }
+  ASSERT_RELEASE(
+      cumulative_fri_step <= log_trace_length,
+      "FRI total reduction cannot be greater than the trace length.");
+
+  const uint64_t last_layer_degree_bound = json["last_layer_degree_bound"].AsSizeT();
+  ASSERT_RELEASE(
+      IsPowerOfTwo(last_layer_degree_bound), "last_layer_degree_bound must be a power of two.");
+  ASSERT_RELEASE(
+      last_layer_degree_bound > 0 && last_layer_degree_bound <= 16384,
+      "Last layer degree bound must be in the range [1, 2^14].");
+  ASSERT_RELEASE(
+      SafeLog2(last_layer_degree_bound) + cumulative_fri_step == log_trace_length,
+      "last_layer_degree_bound (" + std::to_string(last_layer_degree_bound) +
+          ") and FRI total reduction (" + std::to_string(Pow2(cumulative_fri_step)) +
+          ") do not match the trace length (" + std::to_string(Pow2(log_trace_length)) + ").");
+
+  const size_t n_queries = json["n_queries"].AsSizeT();
+  ASSERT_RELEASE(n_queries > 0 && n_queries <= 256, "n_queries must be in the range [1, 256].");
+
+  const size_t proof_of_work_bits = json["proof_of_work_bits"].AsSizeT();
+  ASSERT_RELEASE(
+      proof_of_work_bits >= 0 && proof_of_work_bits <= 50,
+      "proof_of_work_bits must be in the range [0, 50].");
+
+  const Coset evaluation_domain(Pow2(log_trace_length + log_n_cosets), BaseFieldElement::One());
+
+  return {fri_step_list, last_layer_degree_bound, n_queries, evaluation_domain, proof_of_work_bits};
 }
 
 /*

@@ -62,7 +62,7 @@ void MerkleTree::GenerateDecommitment(
 
   uint64_t node_index = queue.front();
   // Iterate over the queue until we reach the root node.
-  while (node_index != uint64_t(1)) {
+  while (node_index > uint64_t(1)) {
     queue.pop();
 
     // Add the parent node to the queue, before sibling check to avoid an empty queue.

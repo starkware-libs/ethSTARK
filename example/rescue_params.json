@@ -4,7 +4,7 @@
             "fri_step_list": [
                 1,
                 2,
-                3
+                2
             ],
             "last_layer_degree_bound": 1,
             "n_queries": 30,

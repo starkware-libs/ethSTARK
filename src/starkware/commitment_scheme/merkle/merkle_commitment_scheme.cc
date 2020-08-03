@@ -30,6 +30,7 @@ void MerkleCommitmentSchemeProver::AddSegmentForCommitment(
       segment_data.size() == SegmentLengthInElements() * kSizeOfElement,
       "Segment size is " + std::to_string(segment_data.size()) + " instead of the expected " +
           std::to_string(kSizeOfElement * SegmentLengthInElements()) + ".");
+  ASSERT_RELEASE(segment_index < n_segments_, "segment_index must be smaller than n_segments_.");
   tree_.AddData(
       segment_data.as_span<const Blake2s160>(), segment_index * SegmentLengthInElements());
 }
