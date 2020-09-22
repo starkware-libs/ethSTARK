@@ -4,7 +4,6 @@
 #include "gtest/gtest.h"
 #include "starkware/algebra/lde/lde_manager.h"
 #include "starkware/channel/prover_channel_mock.h"
-#include "starkware/crypt_tools/blake2s_160.h"
 #include "starkware/fri/fri_folder.h"
 #include "starkware/fri/fri_parameters.h"
 #include "starkware/fri/fri_test_utils.h"

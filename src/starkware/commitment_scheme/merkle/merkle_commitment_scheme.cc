@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <string>
 
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/error_handling/error_handling.h"
 #include "starkware/math/math.h"
 #include "starkware/stl_utils/containers.h"
@@ -32,14 +32,14 @@ void MerkleCommitmentSchemeProver::AddSegmentForCommitment(
           std::to_string(kSizeOfElement * SegmentLengthInElements()) + ".");
   ASSERT_RELEASE(segment_index < n_segments_, "segment_index must be smaller than n_segments_.");
   tree_.AddData(
-      segment_data.as_span<const Blake2s160>(), segment_index * SegmentLengthInElements());
+      segment_data.as_span<const Blake2s256>(), segment_index * SegmentLengthInElements());
 }
 
 void MerkleCommitmentSchemeProver::Commit() {
   // After adding all segments, all inner tree nodes that are at least (tree_height -
   // log2(n_elements_in_segment_)) far from the root - were already computed.
   size_t tree_height = SafeLog2(tree_.GetDataLength());
-  const Blake2s160 commitment = tree_.GetRoot(tree_height - SafeLog2(SegmentLengthInElements()));
+  const Blake2s256 commitment = tree_.GetRoot(tree_height - SafeLog2(SegmentLengthInElements()));
   channel_->SendCommitmentHash(commitment, "Commitment");
 }
 
@@ -65,13 +65,13 @@ void MerkleCommitmentSchemeVerifier::ReadCommitment() {
 bool MerkleCommitmentSchemeVerifier::VerifyIntegrity(
     const std::map<uint64_t, std::vector<std::byte>>& elements_to_verify) {
   // Convert data to hashes.
-  std::map<uint64_t, Blake2s160> hashes_to_verify;
+  std::map<uint64_t, Blake2s256> hashes_to_verify;
 
   for (auto const& element : elements_to_verify) {
     ASSERT_RELEASE(element.first < n_elements_, "Query out of range.");
     ASSERT_RELEASE(
-        element.second.size() == Blake2s160::kDigestNumBytes, "Element size mismatches.");
-    hashes_to_verify[element.first] = Blake2s160::InitDigestTo(element.second);
+        element.second.size() == Blake2s256::kDigestNumBytes, "Element size mismatches.");
+    hashes_to_verify[element.first] = Blake2s256::InitDigestTo(element.second);
   }
   // Verify decommitment.
   return MerkleTree::VerifyDecommitment(hashes_to_verify, n_elements_, *commitment_, channel_);

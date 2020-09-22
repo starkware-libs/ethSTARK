@@ -14,7 +14,7 @@
 #include "starkware/commitment_scheme/commitment_scheme_builder.h"
 #include "starkware/commitment_scheme/merkle/merkle_commitment_scheme.h"
 #include "starkware/commitment_scheme/packaging_commitment_scheme.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/error_handling/test_utils.h"
 #include "starkware/math/math.h"
 #include "starkware/randomness/prng.h"
@@ -39,9 +39,9 @@ struct MerkleCommitmentSchemePairT {
     return VerifierT(n_elements, verifier_channel);
   }
 
-  static size_t DrawSizeOfElement(Prng* /*prng*/) { return Blake2s160::kDigestNumBytes; }
+  static size_t DrawSizeOfElement(Prng* /*prng*/) { return Blake2s256::kDigestNumBytes; }
 
-  static constexpr size_t kMinElementSize = Blake2s160::kDigestNumBytes;
+  static constexpr size_t kMinElementSize = Blake2s256::kDigestNumBytes;
 };
 
 struct PackagingCommitmentSchemePairT {
@@ -60,7 +60,7 @@ struct PackagingCommitmentSchemePairT {
   }
 
   static size_t DrawSizeOfElement(Prng* prng) {
-    return prng->UniformInt<size_t>(1, sizeof(Blake2s160) * 5);
+    return prng->UniformInt<size_t>(1, sizeof(Blake2s256) * 5);
   }
 
   static constexpr size_t kMinElementSize = 1;

@@ -15,7 +15,7 @@
 namespace starkware {
 
 class ProofOfWorkProver {
-  static_assert(Blake2s160::kDigestNumBytes >= 8, "Digest size must be at least 64 bits.");
+  static_assert(Blake2s256::kDigestNumBytes >= 8, "Digest size must be at least 64 bits.");
 
  public:
   /*
@@ -30,7 +30,7 @@ class ProofOfWorkProver {
 };
 
 class ProofOfWorkVerifier {
-  static_assert(Blake2s160::kDigestNumBytes >= 8, "Digest size must be at least 64 bits.");
+  static_assert(Blake2s256::kDigestNumBytes >= 8, "Digest size must be at least 64 bits.");
 
  public:
   static const size_t kNonceBytes = sizeof(uint64_t);

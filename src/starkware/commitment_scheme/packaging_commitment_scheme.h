@@ -36,7 +36,7 @@ using PackagingCommitmentSchemeVerifierFactory =
 */
 class PackagingCommitmentSchemeProver : public CommitmentSchemeProver {
  public:
-  static constexpr size_t kMinSegmentBytes = 2 * Blake2s160::kDigestNumBytes;
+  static constexpr size_t kMinSegmentBytes = 2 * Blake2s256::kDigestNumBytes;
 
   PackagingCommitmentSchemeProver(
       size_t size_of_element, uint64_t n_elements_in_segment, size_t n_segments,

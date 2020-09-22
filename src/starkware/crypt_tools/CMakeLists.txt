@@ -1,4 +1,4 @@
-add_executable(blake2s_160_test blake2s_160_test.cc)
-target_link_libraries(blake2s_160_test blake2s starkware_gtest)
-add_test(blake2s_160_test blake2s_160_test)
+add_executable(blake2s_256_test blake2s_256_test.cc)
+target_link_libraries(blake2s_256_test blake2s starkware_gtest)
+add_test(blake2s_256_test blake2s_256_test)
 

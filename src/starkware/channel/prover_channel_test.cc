@@ -6,7 +6,7 @@
 #include "gtest/gtest.h"
 
 #include "starkware/algebra/fields/base_field_element.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/stl_utils/containers.h"
 
 namespace starkware {
@@ -47,7 +47,7 @@ TEST_F(ProverChannelTest, RecurringCallsYieldUniformDistribution_Statistical) {
     uint64_t random_number = channel.ReceiveNumber(10000000);
     max_random_number = std::max(max_random_number, random_number);
   }
-  EXPECT_EQ(9998834, max_random_number);  // Empirical result. Should be roughly 9999000.
+  EXPECT_EQ(9999940, max_random_number);  // Empirical result. Should be roughly 9999000.
 }
 
 TEST_F(ProverChannelTest, SendingMessageAffectsRandomness) {

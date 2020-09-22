@@ -354,15 +354,15 @@ TYPED_TEST(FieldTest, SubGroupGenerator) {
 /*
   Tests that PrimeFactors() returns all the prime factors of the multiplicative group's size.
 */
-TYPED_TEST(FieldTest, Factors) {
-  const auto factors = TypeParam::PrimeFactors();
-  __uint128_t cur = TypeParam::FieldSize() - 1;
+TEST_F(BaseFieldTest, Factors) {
+  const auto factors = BaseFieldElement::PrimeFactors();
+  __uint64_t cur = BaseFieldElement::FieldSize() - 1;
   // Divide by the factors as much as possible and ensure the result is 1.
   for (const uint64_t factor : factors) {
     ASSERT_NE(factor, 0);
     ASSERT_NE(factor, 1);
     // Make sure the factor divides the group size at least once.
-    __uint128_t remainder;
+    __uint64_t remainder;
     remainder = cur % factor;
     ASSERT_EQ(remainder, 0);
     // Keep dividing while the quotient is divisible by the factor.
@@ -381,20 +381,20 @@ TYPED_TEST(FieldTest, Factors) {
   Assuming that all prime factors are checked (which we test for in a separate test), this is
   equivalent to checking that g^1, g^2, g^3,...,g^|G| is in fact all of G.
 */
-TYPED_TEST(FieldTest, Generator) {
-  const auto factors = TypeParam::PrimeFactors();
-  __uint128_t group_size = TypeParam::FieldSize() - 1;
+TEST_F(BaseFieldTest, Generator) {
+  const auto factors = BaseFieldElement::PrimeFactors();
+  uint64_t group_size = BaseFieldElement::FieldSize() - 1;
   // Check that g^|G| = 1.
-  TypeParam raised_to_max_power = Pow(TypeParam::Generator(), group_size);
-  ASSERT_EQ(raised_to_max_power, TypeParam::One());
+  BaseFieldElement raised_to_max_power = Pow(BaseFieldElement::Generator(), group_size);
+  ASSERT_EQ(raised_to_max_power, BaseFieldElement::One());
   //  Check that for every prime factor p of |G|, g^(|G|/p) != 1.
   for (uint64_t factor : factors) {
-    __uint128_t quotient, remainder;
+    uint64_t quotient, remainder;
     quotient = group_size / factor;
     remainder = group_size % factor;
     ASSERT_EQ(remainder, 0);
-    TypeParam raised = Pow(TypeParam::Generator(), quotient);
-    ASSERT_NE(raised, TypeParam::One());
+    BaseFieldElement raised = Pow(BaseFieldElement::Generator(), quotient);
+    ASSERT_NE(raised, BaseFieldElement::One());
   }
 }
 

@@ -22,7 +22,6 @@
 #include "starkware/commitment_scheme/packaging_commitment_scheme.h"
 #include "starkware/commitment_scheme/table_prover_impl.h"
 #include "starkware/commitment_scheme/table_verifier_impl.h"
-#include "starkware/crypt_tools/blake2s_160.h"
 #include "starkware/error_handling/test_utils.h"
 #include "starkware/proof_system/proof_system.h"
 #include "starkware/stark/utils.h"

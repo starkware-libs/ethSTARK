@@ -35,7 +35,7 @@ class MerkleTree {
     into the tree in any order, and by different threads.
     start_index + data.size() has to be smaller than the data length declared at construction.
   */
-  void AddData(gsl::span<const Blake2s160> data, uint64_t start_index);
+  void AddData(gsl::span<const Blake2s256> data, uint64_t start_index);
 
   /*
     Retrieves the root of the tree.
@@ -51,7 +51,7 @@ class MerkleTree {
     since the leaves were fed in pairs. Similarly, calling GetRoot(0) causes no hash operations to
     be performed, and simply returns the root stored from the last time it was computed.
   */
-  Blake2s160 GetRoot(size_t min_depth_assumed_correct);
+  Blake2s256 GetRoot(size_t min_depth_assumed_correct);
 
   /*
     Generates and sends to the channel minimal consistency proof between the Merkle tree root
@@ -66,14 +66,14 @@ class MerkleTree {
     GenerateDecommitment()). 'total_data_length' is the total number of leaves in the Merkle tree.
   */
   static bool VerifyDecommitment(
-      const std::map<uint64_t, Blake2s160>& data_to_verify, uint64_t total_data_length,
-      const Blake2s160& merkle_root, VerifierChannel* channel);
+      const std::map<uint64_t, Blake2s256>& data_to_verify, uint64_t total_data_length,
+      const Blake2s256& merkle_root, VerifierChannel* channel);
 
   uint64_t GetDataLength() const;
 
  private:
   const uint64_t data_length_;
-  std::vector<Blake2s160> nodes_;
+  std::vector<Blake2s256> nodes_;
 
   void SendDecommitmentNode(uint64_t node_index, ProverChannel* channel) const;
 };

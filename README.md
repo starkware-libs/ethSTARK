@@ -46,10 +46,13 @@ well as explaining the meaning and usage of the prover inputs.
 ## [2. Disclaimers](#Glossary)
 
 1. The code presented in this project has been audited by
-[PeckShield Inc.](https://peckshield.com/en), to view their report, click
-[here](https://starkware.co/peckshield_ethstark_audit/).
+[PeckShield Inc.](https://peckshield.com/en), their
+[report](https://starkware.co/peckshield_ethstark_audit/) refers to commit
+[98c3df5](https://github.com/starkware-libs/ethSTARK/commit/98c3df50e124bd00124315a693bb0fae76331eb3).
+The main difference from the audited commit is that this version is configured for 128 bits of
+security instead of 80.
 
-2. The system is designed to guarantee up to 80 bits of security, depending on hardcoded values and
+2. The system is designed to guarantee up to 128 bits of security, depending on hardcoded values and
 on several parameters given as input. Refer to the [[Measuring Security](#7-Measuring-Security)]
 section for more details.
 
@@ -167,8 +170,8 @@ by the prover and interpreted by the verifier.
                 2
             ],
             "last_layer_degree_bound": 1,
-            "n_queries": 30,
-            "proof_of_work_bits": 20
+            "n_queries": 56,
+            "proof_of_work_bits": 18
         },
         "log_n_cosets": 2
     }
@@ -270,17 +273,23 @@ using:
 ## [7. Measuring Security](#Glossary)
 
 As mentioned in the [[Disclaimers](#2-Disclaimers)] section, this system is designed to support up
-to 80-bits of security.
+to 128-bits of security.
 
-The conjectured security in this system is the minimum of three values:
+The security of this system is the minimum of three values:
 
 1. log_n_cosets * n_queries + proof_of_work_bits (these are the parameters that appear in the
 parameter_file. Refer to the [[Prover Inputs](#5-Prover-Inputs)] section for details).
-2. The collision resistance of the hash used by the protocol. This system employs Blake2s160 for the
-protocol, which is considered to provide 80 bits of security at the time of writing this project.
+2. The collision resistance of the hash used by the protocol. This system employs Blake2s256 for the
+protocol, which is considered to provide 128 bits of security at the time of writing this project.
 3. log(extension_field_size) - log(trace_length) (where the extension field is hardcoded to be of
-size 122 bits, and trace_length = (chain_length / 3) * 32 rounded up to nearest power of 2).
+size 183 bits, and trace_length = (chain_length / 3) * 32 rounded up to nearest power of 2).
 
-Additionally, there is a proven security bound on the soundness of the FRI protocol (used as the LDT
-component of the STARK protocol), for more information refer to section [7.2] in this paper:
+In the information-theoretic IOP model, the ethSTARK IOP yields 128 bits of **provable soundness** (a stronger notion than "security") when using it with the following parameters:
+1. n_queries = 92
+2. proof_of_work_bits = 18
+3. log_n_cosets = 4
+4. log(trace_length) &le; 20 (which is the case for chain_length up to 98304)
+
+For more information regarding the proven security bound on the soundness of the FRI protocol (used
+as the LDT component of the STARK protocol), refer to section [7.2] in this paper:
 [https://eprint.iacr.org/2020/654](https://eprint.iacr.org/2020/654).

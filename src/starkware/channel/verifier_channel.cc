@@ -8,7 +8,7 @@
 #include "starkware/channel/annotation_scope.h"
 #include "starkware/channel/channel_utils.h"
 #include "starkware/channel/proof_of_work.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/utils/serialization.h"
 
 namespace starkware {

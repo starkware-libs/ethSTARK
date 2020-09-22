@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/error_handling/error_handling.h"
 #include "starkware/math/math.h"
 #include "starkware/stl_utils/containers.h"
@@ -36,11 +36,11 @@ std::vector<std::byte> HashElements(gsl::span<const std::byte> data, size_t n_el
   }
   const size_t element_size = SafeDiv(data.size(), n_elements);
   std::vector<std::byte> res;
-  res.reserve(n_elements * Blake2s160::kDigestNumBytes);
+  res.reserve(n_elements * Blake2s256::kDigestNumBytes);
   size_t pos = 0;
   for (size_t i = 0; i < n_elements; ++i, pos += element_size) {
     const auto hash_as_bytes_array =
-        (Blake2s160::HashBytesWithLength(data.subspan(pos, element_size))).GetDigest();
+        (Blake2s256::HashBytesWithLength(data.subspan(pos, element_size))).GetDigest();
     res.insert(res.end(), hash_as_bytes_array.begin(), hash_as_bytes_array.end());
   }
   return res;
@@ -52,7 +52,7 @@ std::vector<std::byte> HashElements(gsl::span<const std::byte> data, size_t n_el
 
 PackerHasher::PackerHasher(size_t size_of_element, size_t n_elements)
     : k_n_elements_in_package(ComputeNumElementsInPackage(
-          size_of_element, 2 * Blake2s160::kDigestNumBytes, n_elements)),
+          size_of_element, 2 * Blake2s256::kDigestNumBytes, n_elements)),
       k_n_packages(SafeDiv(n_elements, k_n_elements_in_package)),
       k_size_of_element_(size_of_element) {
   ASSERT_RELEASE(
@@ -133,7 +133,7 @@ std::map<uint64_t, std::vector<std::byte>> PackerHasher::PackAndHash(
       pos_in_packed_elements += element_data.size();
     }
     // Hashes a package of elements and stores it as a vector of bytes.
-    const auto bytes_array = Blake2s160::HashBytesWithLength(packed_elements).GetDigest();
+    const auto bytes_array = Blake2s256::HashBytesWithLength(packed_elements).GetDigest();
     hashed_packages[package] = {bytes_array.begin(), bytes_array.end()};
   }
   return hashed_packages;

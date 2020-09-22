@@ -7,7 +7,7 @@
 #include "starkware/channel/prover_channel.h"
 #include "starkware/channel/verifier_channel.h"
 #include "starkware/commitment_scheme/merkle/merkle.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/error_handling/test_utils.h"
 #include "starkware/math/math.h"
 #include "starkware/randomness/prng.h"
@@ -19,12 +19,12 @@ namespace {
 /*
   Auxiliary function to generate random hashes for the data given to the tree.
 */
-std::vector<Blake2s160> GetRandomData(uint64_t length, Prng* prng) {
-  std::vector<Blake2s160> data;
+std::vector<Blake2s256> GetRandomData(uint64_t length, Prng* prng) {
+  std::vector<Blake2s256> data;
   data.reserve(length);
   for (uint64_t i = 0; i < length; ++i) {
     std::vector<std::byte> digest;
-    data.push_back(Blake2s160::InitDigestTo(prng->RandomByteVector(Blake2s160::kDigestNumBytes)));
+    data.push_back(Blake2s256::InitDigestTo(prng->RandomByteVector(Blake2s256::kDigestNumBytes)));
   }
   return data;
 }
@@ -33,11 +33,11 @@ std::vector<Blake2s160> GetRandomData(uint64_t length, Prng* prng) {
 TEST(MerkleTreeTest, ComputeRootTwice) {
   Prng prng;
   size_t tree_height = prng.UniformInt(0, 10);
-  std::vector<Blake2s160> data = GetRandomData(Pow2(tree_height), &prng);
+  std::vector<Blake2s256> data = GetRandomData(Pow2(tree_height), &prng);
   MerkleTree tree(data.size());
   tree.AddData(data, 0);
-  Blake2s160 root1 = tree.GetRoot(tree_height);
-  Blake2s160 root2 = tree.GetRoot(tree_height);
+  Blake2s256 root1 = tree.GetRoot(tree_height);
+  Blake2s256 root2 = tree.GetRoot(tree_height);
   EXPECT_EQ(root1, root2);
 }
 
@@ -46,13 +46,13 @@ TEST(MerkleTreeTest, GetRootFromDifferentDepths) {
   Prng prng;
   size_t tree_height = prng.UniformInt(1, 10);
   // Just to make things interesting - we don't feed the data in one go, but in two segments.
-  std::vector<Blake2s160> data = GetRandomData(Pow2(tree_height - 1), &prng);
+  std::vector<Blake2s256> data = GetRandomData(Pow2(tree_height - 1), &prng);
   MerkleTree tree(data.size() * 2);
   tree.AddData(data, 0);
   tree.AddData(data, data.size());
   for (size_t i = 0; i < 20; ++i) {
-    Blake2s160 root1 = tree.GetRoot(prng.UniformInt<size_t>(1, tree_height));
-    Blake2s160 root2 = tree.GetRoot(prng.UniformInt<size_t>(1, tree_height));
+    Blake2s256 root1 = tree.GetRoot(prng.UniformInt<size_t>(1, tree_height));
+    Blake2s256 root2 = tree.GetRoot(prng.UniformInt<size_t>(1, tree_height));
     EXPECT_EQ(root1, root2);
   }
 }
@@ -87,12 +87,12 @@ TEST(MerkleTreeTest, InvalidGenerateDecommitmentInput) {
 TEST(MerkleTreeTest, InvalidDataSize) {
   Prng prng;
   size_t tree_size = Pow2(3);
-  std::vector<Blake2s160> data1 = GetRandomData(tree_size + 1, &prng);
+  std::vector<Blake2s256> data1 = GetRandomData(tree_size + 1, &prng);
   MerkleTree tree1(tree_size);
   EXPECT_ASSERT(
       tree1.AddData(data1, 0),
       testing::HasSubstr("exceeds the data length declared at tree construction"));
-  std::vector<Blake2s160> data2 = GetRandomData(tree_size, &prng);
+  std::vector<Blake2s256> data2 = GetRandomData(tree_size, &prng);
   MerkleTree tree2(tree_size);
   EXPECT_ASSERT(
       tree2.AddData(data2, 2),
@@ -103,12 +103,12 @@ TEST(MerkleTreeTest, InvalidDataSize) {
 TEST(MerkleTreeTest, DifferentRootForDifferentTrees) {
   Prng prng;
   size_t tree_height = prng.UniformInt(0, 10);
-  std::vector<Blake2s160> data = GetRandomData(Pow2(tree_height), &prng);
+  std::vector<Blake2s256> data = GetRandomData(Pow2(tree_height), &prng);
   MerkleTree tree(data.size());
   tree.AddData(data, 0);
-  Blake2s160 root1 = tree.GetRoot(0);
+  Blake2s256 root1 = tree.GetRoot(0);
   tree.AddData(GetRandomData(1, &prng), 0);
-  Blake2s160 root2 = tree.GetRoot(tree_height);
+  Blake2s256 root2 = tree.GetRoot(tree_height);
   EXPECT_NE(root1, root2);
 }
 
@@ -118,13 +118,13 @@ TEST(MerkleTreeTest, DifferentRootForDifferentTrees) {
 TEST(MerkleTreeTest, QueryVerificationPositive) {
   Prng prng;
   uint64_t data_length = Pow2(prng.UniformInt(0, 10));
-  std::vector<Blake2s160> data = GetRandomData(data_length, &prng);
+  std::vector<Blake2s256> data = GetRandomData(data_length, &prng);
   MerkleTree tree(data.size());
   tree.AddData(data, 0);
-  Blake2s160 root = tree.GetRoot(0);
+  Blake2s256 root = tree.GetRoot(0);
   std::set<uint64_t> queries;
   size_t num_queries = prng.UniformInt(static_cast<size_t>(1), std::min<size_t>(10, data_length));
-  std::map<uint64_t, Blake2s160> query_data;
+  std::map<uint64_t, Blake2s256> query_data;
   while (queries.size() < num_queries) {
     uint64_t query = prng.UniformInt(static_cast<uint64_t>(0), data_length - 1);
     queries.insert(query);
@@ -146,14 +146,14 @@ TEST(MerkleTreeTest, QueryVerificationPositive) {
 TEST(MerkleTreeTest, QueryVerificationNegative) {
   Prng prng;
   uint64_t data_length = Pow2(prng.UniformInt(0, 10));
-  std::vector<Blake2s160> data = GetRandomData(data_length, &prng);
+  std::vector<Blake2s256> data = GetRandomData(data_length, &prng);
   MerkleTree tree(data.size());
   tree.AddData(data, 0);
-  Blake2s160 root = tree.GetRoot(0);
+  Blake2s256 root = tree.GetRoot(0);
   std::set<uint64_t> queries;
   size_t num_queries =
       prng.UniformInt(static_cast<uint64_t>(1), std::min<uint64_t>(10, data_length));
-  std::map<uint64_t, Blake2s160> query_data;
+  std::map<uint64_t, Blake2s256> query_data;
   while (queries.size() < num_queries) {
     uint64_t query = prng.UniformInt(static_cast<uint64_t>(0), data_length - 1);
     queries.insert(query);

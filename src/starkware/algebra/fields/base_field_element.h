@@ -26,8 +26,8 @@ class BaseFieldElement : public FieldElementBase<BaseFieldElement> {
   static constexpr uint64_t kMontgomeryMPrime = 0x20000013ffffffff;  // = (-(kModulus^-1)) mod 2^64.
 
 #ifdef NDEBUG
-  // The default constructor is allowed to be used only in Release builds in order to reduce
-  // memory allocation time for vectors of field elements.
+  // The default constructor is allowed to be used only in Release builds in order to reduce memory
+  // allocation time for vectors of field elements.
   BaseFieldElement() = default;
 #else
   // In debug builds, the default constructor is not allowed to be called at all.
@@ -94,7 +94,7 @@ class BaseFieldElement : public FieldElementBase<BaseFieldElement> {
   */
   static constexpr std::array<uint64_t, 5> PrimeFactors() { return {2, 13, 167, 211, 293}; }
 
-  static constexpr __uint128_t FieldSize() { return kModulus; }
+  static constexpr uint64_t FieldSize() { return kModulus; }
   static constexpr size_t SizeInBytes() { return sizeof(uint64_t); }
 
  private:

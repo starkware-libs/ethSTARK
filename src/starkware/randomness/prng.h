@@ -9,7 +9,7 @@
 
 #include "third_party/gsl/gsl-lite.hpp"
 
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/randomness/hash_chain.h"
 
 namespace starkware {
@@ -92,8 +92,8 @@ class Prng {
   /*
     Returns a random hash.
   */
-  Blake2s160 RandomHash() {
-    return Blake2s160::InitDigestTo(RandomByteVector(Blake2s160::kDigestNumBytes));
+  Blake2s256 RandomHash() {
+    return Blake2s256::InitDigestTo(RandomByteVector(Blake2s256::kDigestNumBytes));
   }
 
   /*
@@ -103,7 +103,7 @@ class Prng {
     hash_chain_.UpdateHashChain(raw_bytes);
   }
 
-  std::array<std::byte, Blake2s160::kDigestNumBytes> GetPrngState() const {
+  std::array<std::byte, Blake2s256::kDigestNumBytes> GetPrngState() const {
     return hash_chain_.GetHashChainState().GetDigest();
   }
 

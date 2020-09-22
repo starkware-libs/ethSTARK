@@ -5,7 +5,6 @@
 #include <utility>
 
 #include "starkware/commitment_scheme/packer_hasher.h"
-#include "starkware/crypt_tools/blake2s_160.h"
 #include "starkware/error_handling/error_handling.h"
 #include "starkware/math/math.h"
 #include "starkware/stl_utils/containers.h"

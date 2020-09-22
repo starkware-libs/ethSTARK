@@ -5,7 +5,7 @@
 #include <limits>
 #include <vector>
 
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "third_party/gsl/gsl-lite.hpp"
 
 namespace starkware {
@@ -29,7 +29,7 @@ class HashChain {
   */
   void UpdateHashChain(gsl::span<const std::byte> raw_bytes);
 
-  const Blake2s160& GetHashChainState() const { return hash_; }
+  const Blake2s256& GetHashChainState() const { return hash_; }
 
   // In order to allow this class to be used by 'std::uniform_int_distribution' as a random bit
   // generator it must support the C++ standard UniformRandomBitGenerator prerequisites (see
@@ -53,7 +53,7 @@ class HashChain {
     generated.
     This function takes a counter and a hash, and returns their combined hash.
   */
-  static Blake2s160 HashWithCounter(const Blake2s160& hash, uint64_t counter);
+  static Blake2s256 HashWithCounter(const Blake2s256& hash, uint64_t counter);
 
   /*
     Adds additional random bytes by hashing the value of the given counter together with the
@@ -62,8 +62,8 @@ class HashChain {
   void GetMoreRandomBytesUsingHashWithCounter(
       uint64_t counter, gsl::span<std::byte> random_bytes_out);
 
-  Blake2s160 hash_;
-  std::array<std::byte, Blake2s160::kDigestNumBytes * 2> spare_bytes_{};
+  Blake2s256 hash_;
+  std::array<std::byte, Blake2s256::kDigestNumBytes * 2> spare_bytes_{};
   size_t num_spare_bytes_ = 0;
   size_t counter_ = 0;
 };

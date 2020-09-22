@@ -10,7 +10,7 @@
 #include "starkware/channel/channel.h"
 #include "starkware/channel/prover_channel.h"
 #include "starkware/channel/verifier_channel.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/error_handling/test_utils.h"
 #include "starkware/stl_utils/containers.h"
 
@@ -147,7 +147,7 @@ TEST_F(ChannelTest, SendReceiveConsistency) {
   Prng prng(MakeByteArray<0xca, 0xfe, 0xca, 0xfe>());
 
   auto prover_elem = BaseFieldElement::RandomElement(&prng);
-  Blake2s160 prover_commitment = prng.RandomHash();
+  Blake2s256 prover_commitment = prng.RandomHash();
 
   prover_channel.SendFieldElement(prover_elem);
   prover_channel.SendCommitmentHash(prover_commitment);
@@ -159,7 +159,7 @@ TEST_F(ChannelTest, SendReceiveConsistency) {
   EXPECT_FALSE(verifier_channel.IsEndOfProof());
   BaseFieldElement verifier_elem = verifier_channel.ReceiveFieldElement<BaseFieldElement>();
   EXPECT_FALSE(verifier_channel.IsEndOfProof());
-  Blake2s160 verifier_commitment = verifier_channel.ReceiveCommitmentHash();
+  Blake2s256 verifier_commitment = verifier_channel.ReceiveCommitmentHash();
   EXPECT_TRUE(verifier_channel.IsEndOfProof());
 
   EXPECT_EQ(verifier_elem, prover_elem);
@@ -180,7 +180,7 @@ TEST_F(ChannelTest, SendReceiveConsistency) {
 TEST_F(ChannelTest, FriFlowSimulation) {
   ProverChannel prover_channel(this->channel_prng.Clone());
 
-  Blake2s160 prover_commitment1 = this->prng.RandomHash();
+  Blake2s256 prover_commitment1 = this->prng.RandomHash();
   prover_channel.SendCommitmentHash(prover_commitment1, "First FRI layer");
 
   ExtensionFieldElement prover_test_field_element1 =
@@ -195,7 +195,7 @@ TEST_F(ChannelTest, FriFlowSimulation) {
   uint64_t prover_number1 = prover_channel.ReceiveNumber(8, "query index #1 first layer");
   uint64_t prover_number2 = prover_channel.ReceiveNumber(8, "query index #2 first layer");
 
-  std::vector<Blake2s160> prover_decommitment1;
+  std::vector<Blake2s256> prover_decommitment1;
   for (size_t i = 0; i < 15; ++i) {
     prover_decommitment1.push_back(this->prng.RandomHash());
     prover_channel.SendDecommitmentNode(prover_decommitment1.back(), "FRI layer");
@@ -205,7 +205,7 @@ TEST_F(ChannelTest, FriFlowSimulation) {
 
   VerifierChannel verifier_channel(this->channel_prng.Clone(), proof);
 
-  Blake2s160 verifier_commitment1 = verifier_channel.ReceiveCommitmentHash("First FRI layer");
+  Blake2s256 verifier_commitment1 = verifier_channel.ReceiveCommitmentHash("First FRI layer");
   EXPECT_EQ(verifier_commitment1, prover_commitment1);
   ExtensionFieldElement verifier_test_field_element1 =
       verifier_channel.GetAndSendRandomFieldElement("evaluation point");
@@ -222,7 +222,7 @@ TEST_F(ChannelTest, FriFlowSimulation) {
   uint64_t verifier_number2 =
       verifier_channel.GetAndSendRandomNumber(8, "query index #2 first layer");
   EXPECT_EQ(verifier_number2, prover_number2);
-  std::vector<Blake2s160> verifier_decommitment1;
+  std::vector<Blake2s256> verifier_decommitment1;
   for (size_t i = 0; i < 15; ++i) {
     verifier_decommitment1.push_back(verifier_channel.ReceiveDecommitmentNode("FRI layer"));
   }

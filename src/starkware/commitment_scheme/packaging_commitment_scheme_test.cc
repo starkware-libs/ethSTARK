@@ -11,7 +11,7 @@
 #include "starkware/channel/verifier_channel_mock.h"
 
 #include "starkware/commitment_scheme/commitment_scheme_mock.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/error_handling/test_utils.h"
 #include "starkware/randomness/prng.h"
 
@@ -62,9 +62,9 @@ void TestGetNumOfPackages(
   EXPECT_TRUE(IsPowerOfTwo(n_packages));
   EXPECT_TRUE(IsPowerOfTwo(n_elements_in_package));
   // Checks that n_packages is not too big (equivalently - n_elements_in_package is big enough).
-  EXPECT_TRUE(n_elements_in_package * size_of_element >= 2 * Blake2s160::kDigestNumBytes);
+  EXPECT_TRUE(n_elements_in_package * size_of_element >= 2 * Blake2s256::kDigestNumBytes);
   // Checks that n_packages is not too small (equivalently - n_elements_in_package is not too big).
-  EXPECT_TRUE(((n_elements_in_package / 2) * size_of_element) < 2 * Blake2s160::kDigestNumBytes);
+  EXPECT_TRUE(((n_elements_in_package / 2) * size_of_element) < 2 * Blake2s256::kDigestNumBytes);
 }
 
 TEST(PackagingCommitmentSchemeProver, GetNumOfPackages) {
@@ -72,14 +72,14 @@ TEST(PackagingCommitmentSchemeProver, GetNumOfPackages) {
   TestGetNumOfPackages(9, 16, 16);
   TestGetNumOfPackages(32, 16, 8);
   TestGetNumOfPackages(1, 128, 32);
-  TestGetNumOfPackages(2 * Blake2s160::kDigestNumBytes, 1, 8);
+  TestGetNumOfPackages(2 * Blake2s256::kDigestNumBytes, 1, 8);
   // Size of element is zero.
   EXPECT_ASSERT(GetNumOfPackages(0, 32, 20), HasSubstr("least of length"));
   // Num of elements is not power of 2.
   EXPECT_ASSERT(GetNumOfPackages(15, 16, 10), HasSubstr("power of 2"));
   // Size of element is greater than size of package.
   TestGetNumOfPackages(100, 1, 64);
-  TestGetNumOfPackages(4 * Blake2s160::kDigestNumBytes, 1, 16);
+  TestGetNumOfPackages(4 * Blake2s256::kDigestNumBytes, 1, 16);
 }
 
 // --------- Prover tests ----------
@@ -89,7 +89,7 @@ TEST(PackagingCommitmentSchemeProver, NumSegments) {
   const size_t n_segments = Pow2(prng.UniformInt<size_t>(1, 10));
   StrictMock<ProverChannelMock> prover_channel;
   const PackagingCommitmentSchemeProver packaging_prover(
-      prng.UniformInt<size_t>(1, sizeof(Blake2s160) * 5), Pow2(prng.UniformInt<size_t>(1, 10)),
+      prng.UniformInt<size_t>(1, sizeof(Blake2s256) * 5), Pow2(prng.UniformInt<size_t>(1, 10)),
       n_segments, &prover_channel,
       [](size_t /*n_elements_inner_layer*/) -> std::unique_ptr<CommitmentSchemeProver> {
         return std::make_unique<StrictMock<CommitmentSchemeProverMock>>();
@@ -126,19 +126,19 @@ void TestAddSegmentForCommitmentAndCommit(
 }
 
 TEST(PackagingCommitmentSchemeProver, AddSegmentForCommitmentAndCommit) {
-  TestAddSegmentForCommitmentAndCommit(2 * Blake2s160::kDigestNumBytes, 8, 16);
+  TestAddSegmentForCommitmentAndCommit(2 * Blake2s256::kDigestNumBytes, 8, 16);
   TestAddSegmentForCommitmentAndCommit(1, 128, 16);
-  TestAddSegmentForCommitmentAndCommit(2 * Blake2s160::kDigestNumBytes, 8, 16);
+  TestAddSegmentForCommitmentAndCommit(2 * Blake2s256::kDigestNumBytes, 8, 16);
   TestAddSegmentForCommitmentAndCommit(1, 128, 16);
   TestAddSegmentForCommitmentAndCommit(11, 32, 4);
   TestAddSegmentForCommitmentAndCommit(33, 2, 1);
-  TestAddSegmentForCommitmentAndCommit(Blake2s160::kDigestNumBytes, 2, 64);
-  TestAddSegmentForCommitmentAndCommit(2 * Blake2s160::kDigestNumBytes + 15, 1, 32);
-  TestAddSegmentForCommitmentAndCommit(4 * Blake2s160::kDigestNumBytes, 1, 8);
+  TestAddSegmentForCommitmentAndCommit(Blake2s256::kDigestNumBytes, 2, 64);
+  TestAddSegmentForCommitmentAndCommit(2 * Blake2s256::kDigestNumBytes + 15, 1, 32);
+  TestAddSegmentForCommitmentAndCommit(4 * Blake2s256::kDigestNumBytes, 1, 8);
 }
 
 TEST(PackagingCommitmentSchemeProver, AddSegmentForCommitment_AssertsChecks) {
-  const size_t size_of_element = 2 * Blake2s160::kDigestNumBytes;
+  const size_t size_of_element = 2 * Blake2s256::kDigestNumBytes;
   const uint64_t n_elements_in_segment = 8;
   const size_t n_segments = 16;
   Prng prng;
@@ -164,18 +164,18 @@ TEST(PackagingCommitmentSchemeProver, StartDecommitmentPhaseAndDecommit) {
   auto inner_commitment_scheme = std::make_unique<StrictMock<CommitmentSchemeProverMock>>();
   // Inner_commitment_scheme packs 2 elements in a package. packaging_prover calls
   // StartDecommitmentPhase of inner_commitment_scheme with a set of package indices of the
-  // packages containing queries. There are 4 elements in each package created by packaging_prover,
-  // hence, 1 and 3 are in package number 0, and 30 is in package number 7.
-  std::set<uint64_t> inner_layer_queries{0, 7};
+  // packages containing queries. There are 8 elements in each package created by packaging_prover,
+  // hence, 1 and 3 are in package number 0, and 30 is in package number 3.
+  std::set<uint64_t> inner_layer_queries{0, 3};
   EXPECT_CALL(*inner_commitment_scheme, StartDecommitmentPhase(inner_layer_queries))
-      .WillOnce(testing::Return(std::vector<uint64_t>{1, 6}));
-  // Inner_commitment_scheme needs 8 elements, which are 2 packages (there are 4 elements in a
+      .WillOnce(testing::Return(std::vector<uint64_t>{1, 2}));
+  // Inner_commitment_scheme needs 16 elements, which are 2 packages (there are 8 elements in a
   // package of packaging_prover). Hence, the size of data sent to decommit is twice the size of
   // hash in bytes.
   EXPECT_CALL(
       *inner_commitment_scheme,
       Decommit(
-          testing::Property(&gsl::span<const std::byte>::size, 2 * Blake2s160::kDigestNumBytes)));
+          testing::Property(&gsl::span<const std::byte>::size, 2 * Blake2s256::kDigestNumBytes)));
   PackagingCommitmentSchemeProver packaging_prover(
       element_size, 16, 8, &prover_channel,
       [&inner_commitment_scheme](
@@ -185,22 +185,16 @@ TEST(PackagingCommitmentSchemeProver, StartDecommitmentPhaseAndDecommit) {
 
   // StartDecommitmentPhase phase.
   auto res = packaging_prover.StartDecommitmentPhase(queries);
-
-  // Vector expected_res contains the rest of the queries required to decommit. For queries 1
-  // and 3, we need 0 and 2 because they complete the package of 1 and 3 in the first layer; and 4,
-  // 5, 6, 7 because this is the package that is required for calculating the decommit in the second
-  // layer. For query 30 we need 28, 29, 31 because they complete the package of 30 in the first
-  // layer; and 24, 25, 26, 27 because this is the package that is required for calculating the
-  // decommit in the second layer.
-  std::vector<uint64_t> expected_res = {0, 2, 28, 29, 31, 4, 5, 6, 7, 24, 25, 26, 27};
+  std::vector<uint64_t> expected_res = {0,  2,  4,  5,  6,  7,  24, 25, 26, 27, 28, 29, 31, 8, 9,
+                                        10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
   EXPECT_EQ(res, expected_res);
 
   // Decommit phase.
   const std::vector<std::byte> data = prng.RandomByteVector(expected_res.size() * element_size);
-  // SendBytes is called 5 times - 2 times for missing queries of package number 0 and 3 times for
-  // missing queries of package number 7.
+  // SendBytes is called 13 times - 6 times for missing queries of package number 0 and 7 times for
+  // missing queries of package number 3.
   const gsl::span<const std::byte> span_data = gsl::make_span(data);
-  for (size_t i = 0; i < 5; i++) {
+  for (size_t i = 0; i < 13; i++) {
     EXPECT_CALL(prover_channel, SendBytes(span_data.subspan(i * element_size, element_size)));
   }
   packaging_prover.Decommit(data);
@@ -212,7 +206,7 @@ TEST(PackagingCommitmentSchemeVerifier, ReadCommitment) {
   Prng prng;
   StrictMock<VerifierChannelMock> verifier_channel;
   PackagingCommitmentSchemeVerifier packaging_verifier(
-      prng.UniformInt<size_t>(1, sizeof(Blake2s160) * 5), Pow2(prng.UniformInt<size_t>(1, 10)),
+      prng.UniformInt<size_t>(1, sizeof(Blake2s256) * 5), Pow2(prng.UniformInt<size_t>(1, 10)),
       &verifier_channel,
       [](size_t /*n_elements_inner_layer*/) -> std::unique_ptr<CommitmentSchemeVerifier> {
         auto inner_commitment_scheme_verifier =
@@ -247,7 +241,7 @@ TEST(PackagingCommitmentSchemeVerifier, VerifyIntegritySmallElement) {
   // Get required elements from channel. The verifier gets 5 elements from channel: 3 to calculate
   // element number 1, and 2 to calculate elements number 10 and 11.
   // Explanation: number of elements in package is 4 (package size is 2 *
-  // Blake2s160::kDigestNumBytes and element size is 17, for full explanation of number of elements
+  // Blake2s256::kDigestNumBytes and element size is 17, for full explanation of number of elements
   // in package calculation see Packer_hasher.ComputeNumElementsInPackage). Hence, In order to
   // verify element number 1 the verifier needs elements 0,2,3; and in order to verify elements
   // number 10 and 11 the verifier needs elements number 8, 9.
@@ -266,11 +260,11 @@ TEST(PackagingCommitmentSchemeVerifier, VerifyIntegrityBigElement) {
   // Disables annotation to avoid running part of code in verifier_channel.ReceiveData() (note that
   // verifier_channel is a mock, there is no real interaction between prover and verifier).
   verifier_channel.DisableAnnotations();
-  // Size of element is greater than package size (which is 2 * Blake2s160::kDigestNumBytes), hence
+  // Size of element is greater than package size (which is 2 * Blake2s256::kDigestNumBytes), hence
   // each package contains a single element. No extra elements are needed to calculate hash of a
   // single element to verify.
   const size_t element_size_big =
-      prng.UniformInt<size_t>(sizeof(Blake2s160) * 2, sizeof(Blake2s160) * 5);
+      prng.UniformInt<size_t>(sizeof(Blake2s256) * 2, sizeof(Blake2s256) * 5);
   const size_t n_elements = Pow2(prng.UniformInt<size_t>(4, 10));
 
   // Creates 3 elements to verify.

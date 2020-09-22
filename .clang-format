@@ -1,0 +1,6 @@
+---
+BasedOnStyle: Google
+AlignAfterOpenBracket: AlwaysBreak
+ColumnLimit: 100
+DerivePointerAlignment: false
+IncludeBlocks: Preserve

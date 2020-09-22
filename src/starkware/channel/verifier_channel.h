@@ -10,7 +10,7 @@
 
 #include "starkware/algebra/fields/extension_field_element.h"
 #include "starkware/channel/channel.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/stl_utils/containers.h"
 #include "starkware/utils/to_from_string.h"
 
@@ -59,11 +59,11 @@ class VerifierChannel : public Channel {
     return GetAndSendRandomFieldElement(annotation);
   }
 
-  Blake2s160 ReceiveCommitmentHash(const std::string& annotation = "") {
-    Blake2s160 hash = Blake2s160::InitDigestTo(ReceiveBytes(Blake2s160::kDigestNumBytes));
+  Blake2s256 ReceiveCommitmentHash(const std::string& annotation = "") {
+    Blake2s256 hash = Blake2s256::InitDigestTo(ReceiveBytes(Blake2s256::kDigestNumBytes));
     if (AnnotationsEnabled()) {
       AnnotateProverToVerifier(
-          annotation + ": Hash(" + hash.ToString() + ")", Blake2s160::kDigestNumBytes);
+          annotation + ": Hash(" + hash.ToString() + ")", Blake2s256::kDigestNumBytes);
     }
     proof_statistics_.commitment_count += 1;
     proof_statistics_.hash_count += 1;
@@ -101,11 +101,11 @@ class VerifierChannel : public Channel {
     proof_statistics_.field_element_count += span.size();
   }
 
-  Blake2s160 ReceiveDecommitmentNode(const std::string& annotation = "") {
-    Blake2s160 hash = Blake2s160::InitDigestTo(ReceiveBytes(Blake2s160::kDigestNumBytes));
+  Blake2s256 ReceiveDecommitmentNode(const std::string& annotation = "") {
+    Blake2s256 hash = Blake2s256::InitDigestTo(ReceiveBytes(Blake2s256::kDigestNumBytes));
     if (AnnotationsEnabled()) {
       AnnotateProverToVerifier(
-          annotation + ": Hash(" + hash.ToString() + ")", Blake2s160::kDigestNumBytes);
+          annotation + ": Hash(" + hash.ToString() + ")", Blake2s256::kDigestNumBytes);
     }
 
     proof_statistics_.hash_count++;

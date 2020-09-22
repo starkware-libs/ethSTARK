@@ -5,12 +5,12 @@
 #include "glog/logging.h"
 
 #include "starkware/commitment_scheme/merkle/merkle.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/stl_utils/containers.h"
 
 namespace starkware {
 
-void MerkleTree::AddData(gsl::span<const Blake2s160> data, uint64_t start_index) {
+void MerkleTree::AddData(gsl::span<const Blake2s256> data, uint64_t start_index) {
   ASSERT_RELEASE(
       start_index + data.size() <= data_length_,
       "Data of length " + std::to_string(data.size()) + ", starting at " +
@@ -26,20 +26,20 @@ void MerkleTree::AddData(gsl::span<const Blake2s160> data, uint64_t start_index)
        sub_layer_length /= 2, cur /= 2) {
     for (size_t i = cur; i < cur + sub_layer_length; i++) {
       // Compute next sub-layer.
-      nodes_[i] = Blake2s160::Hash(nodes_[i * 2], nodes_[i * 2 + 1]);
+      nodes_[i] = Blake2s256::Hash(nodes_[i * 2], nodes_[i * 2 + 1]);
       VLOG(6) << "Wrote to inner node #" << i;
     }
   }
 }
 
-Blake2s160 MerkleTree::GetRoot(size_t min_depth_assumed_correct) {
+Blake2s256 MerkleTree::GetRoot(size_t min_depth_assumed_correct) {
   // Iterating nodes in reverse order to traverse up the tree layer by layer.
   VLOG(4) << "Computing root, assuming correctness of nodes at depth " << min_depth_assumed_correct;
   ASSERT_RELEASE(
       min_depth_assumed_correct < SafeLog2(nodes_.size()),
       "Depth should not exceed tree's height.");
   for (uint64_t i = Pow2(min_depth_assumed_correct) - 1; i > 0; i--) {
-    nodes_[i] = Blake2s160::Hash(nodes_[i * 2], nodes_[i * 2 + 1]);
+    nodes_[i] = Blake2s256::Hash(nodes_[i * 2], nodes_[i * 2 + 1]);
   }
   return nodes_[1];
 }
@@ -85,12 +85,12 @@ void MerkleTree::SendDecommitmentNode(uint64_t node_index, ProverChannel* channe
 }
 
 bool MerkleTree::VerifyDecommitment(
-    const std::map<uint64_t, Blake2s160>& data_to_verify, uint64_t total_data_length,
-    const Blake2s160& merkle_root, VerifierChannel* channel) {
+    const std::map<uint64_t, Blake2s256>& data_to_verify, uint64_t total_data_length,
+    const Blake2s256& merkle_root, VerifierChannel* channel) {
   ASSERT_RELEASE(
       total_data_length > 0, "Data length has to be at least 1 (i.e. tree cannot be empty).");
 
-  std::queue<std::pair<uint64_t, Blake2s160>> queue;
+  std::queue<std::pair<uint64_t, Blake2s256>> queue;
   // Fix offset of query enumeration.
   for (const auto& to_verify : data_to_verify) {
     queue.emplace(to_verify.first + total_data_length, to_verify.second);
@@ -99,16 +99,16 @@ bool MerkleTree::VerifyDecommitment(
   // We iterate over the known nodes, i.e. the ones given within data_to_verify or computed from
   // known nodes, and using the decommitment nodes - we add more 'known nodes' to the pool, until
   // either we have no more known nodes, or we can compute the hash of the root.
-  std::array<Blake2s160, 2> siblings = {};
+  std::array<Blake2s256, 2> siblings = {};
 
   uint64_t node_index;
-  Blake2s160 node_hash;
+  Blake2s256 node_hash;
   std::tie(node_index, node_hash) = queue.front();
   while (node_index != uint64_t(1)) {
     queue.pop();
     gsl::at(siblings, node_index & 1) = node_hash;
 
-    Blake2s160 sibling_node_hash;
+    Blake2s256 sibling_node_hash;
     uint64_t sibling_node_index = node_index ^ 1;
     if (!queue.empty() && queue.front().first == sibling_node_index) {
       // Node's sibling is already known. Take it from known_nodes.
@@ -117,7 +117,7 @@ bool MerkleTree::VerifyDecommitment(
       queue.pop();
     } else {
       // This node's sibling is part of the authentication nodes. Read it from the channel.
-      const Blake2s160 decommitment_node =
+      const Blake2s256 decommitment_node =
           channel->ReceiveDecommitmentNode("For node " + std::to_string(sibling_node_index));
       VLOG(7) << "Fetching node " << sibling_node_index << " from channel.";
       sibling_node_hash = decommitment_node;
@@ -125,7 +125,7 @@ bool MerkleTree::VerifyDecommitment(
     gsl::at(siblings, sibling_node_index & 1) = sibling_node_hash;
     VLOG(7) << "Adding hash for " << node_index;
     VLOG(7) << "Hashing " << siblings[0] << " and " << siblings[1];
-    queue.emplace(node_index / 2, Blake2s160::Hash(siblings[0], siblings[1]));
+    queue.emplace(node_index / 2, Blake2s256::Hash(siblings[0], siblings[1]));
 
     std::tie(node_index, node_hash) = queue.front();
   }

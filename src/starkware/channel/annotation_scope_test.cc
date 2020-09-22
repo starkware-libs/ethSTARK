@@ -7,7 +7,7 @@
 
 #include "starkware/algebra/fields/base_field_element.h"
 #include "starkware/channel/prover_channel.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 
 namespace starkware {
 namespace {
@@ -26,7 +26,7 @@ TEST(AnnotationScope, BasicTest) {
         AnnotationScope scope(&prover_channel, "Layer 1");
         {
           AnnotationScope scope(&prover_channel, "Commitment");
-          Blake2s160 pcommitment1 = prng.RandomHash();
+          Blake2s256 pcommitment1 = prng.RandomHash();
           prover_channel.SendCommitmentHash(pcommitment1, "First FRI layer");
         }
         {

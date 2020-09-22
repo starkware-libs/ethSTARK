@@ -14,7 +14,7 @@ namespace starkware {
 
 namespace {
 
-Blake2s160 InitHash(gsl::span<const std::byte> seed, size_t work_bits) {
+Blake2s256 InitHash(gsl::span<const std::byte> seed, size_t work_bits) {
   static constexpr std::array<std::byte, 8> kMagic =
       MakeByteArray<0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xed>();
   // init_bytes = kMagic || seed || work_bits.
@@ -22,7 +22,7 @@ Blake2s160 InitHash(gsl::span<const std::byte> seed, size_t work_bits) {
   std::copy(seed.begin(), seed.end(), std::back_inserter(init_bytes));
   init_bytes.push_back(std::byte(work_bits));
 
-  return Blake2s160::HashBytesWithLength(init_bytes);
+  return Blake2s256::HashBytesWithLength(init_bytes);
 }
 
 }  // namespace
@@ -38,7 +38,7 @@ std::optional<std::uint64_t> SearchChunk(
   const gsl::span<std::byte> nonce_span = thread_bytes.last(sizeof(uint64_t));
   for (uint64_t nonce = nonce_start; nonce < nonce_start + chunk_size; ++nonce) {
     Serialize(nonce, nonce_span);
-    const Blake2s160 hash = Blake2s160::HashBytesWithLength(thread_bytes);
+    const Blake2s256 hash = Blake2s256::HashBytesWithLength(thread_bytes);
     const uint64_t digest_word =
         Deserialize(gsl::make_span(hash.GetDigest()).first(sizeof(uint64_t)));
     // Check that we have enough zero bits.
@@ -57,8 +57,8 @@ std::vector<std::byte> ProofOfWorkProver::Prove(
 
   ProfilingBlock profiling_block("Proof of work");
 
-  const Blake2s160 init_hash = InitHash(seed, work_bits);
-  std::array<std::byte, Blake2s160::kDigestNumBytes + sizeof(uint64_t)> bytes{};
+  const Blake2s256 init_hash = InitHash(seed, work_bits);
+  std::array<std::byte, Blake2s256::kDigestNumBytes + sizeof(uint64_t)> bytes{};
   std::copy(init_hash.GetDigest().begin(), init_hash.GetDigest().end(), bytes.begin());
 
   const uint64_t work_limit = Pow2(64 - work_bits);
@@ -76,7 +76,7 @@ std::vector<std::byte> ProofOfWorkProver::Prove(
       thread_count, [&lowest_nonce_found, &next_chunk_to_search, &bytes, work_limit, chunk_size,
                      nonce_bound](const TaskInfo& task_info) {
         uint64_t thread_id = task_info.start_idx;
-        std::array<std::byte, Blake2s160::kDigestNumBytes + sizeof(uint64_t)> thread_bytes(bytes);
+        std::array<std::byte, Blake2s256::kDigestNumBytes + sizeof(uint64_t)> thread_bytes(bytes);
         uint64_t nonce_start = thread_id * chunk_size;
         do {
           std::optional<uint64_t> nonce =
@@ -107,13 +107,13 @@ bool ProofOfWorkVerifier::Verify(
   ASSERT_RELEASE(work_bits > 0, "At least one bit of work is required.");
   ASSERT_RELEASE(work_bits <= 40, "Too many bits of work requested.");
 
-  const Blake2s160 init_hash = InitHash(seed, work_bits);
-  std::array<std::byte, Blake2s160::kDigestNumBytes + sizeof(uint64_t)> bytes{};
+  const Blake2s256 init_hash = InitHash(seed, work_bits);
+  std::array<std::byte, Blake2s256::kDigestNumBytes + sizeof(uint64_t)> bytes{};
   std::copy(init_hash.GetDigest().begin(), init_hash.GetDigest().end(), bytes.begin());
-  std::copy(nonce_bytes.begin(), nonce_bytes.end(), bytes.begin() + Blake2s160::kDigestNumBytes);
+  std::copy(nonce_bytes.begin(), nonce_bytes.end(), bytes.begin() + Blake2s256::kDigestNumBytes);
   const uint64_t work_limit = Pow2(64 - work_bits);
 
-  const Blake2s160 hash = Blake2s160::HashBytesWithLength(bytes);
+  const Blake2s256 hash = Blake2s256::HashBytesWithLength(bytes);
   const uint64_t digest_word =
       Deserialize(gsl::make_span(hash.GetDigest()).first(sizeof(uint64_t)));
 

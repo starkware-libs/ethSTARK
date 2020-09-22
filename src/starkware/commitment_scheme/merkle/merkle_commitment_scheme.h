@@ -13,14 +13,14 @@
 #include "starkware/channel/verifier_channel.h"
 #include "starkware/commitment_scheme/commitment_scheme.h"
 #include "starkware/commitment_scheme/merkle/merkle.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 
 namespace starkware {
 
 class MerkleCommitmentSchemeProver : public CommitmentSchemeProver {
  public:
-  static constexpr size_t kMinSegmentBytes = 2 * Blake2s160::kDigestNumBytes;
-  static constexpr size_t kSizeOfElement = Blake2s160::kDigestNumBytes;
+  static constexpr size_t kMinSegmentBytes = 2 * Blake2s256::kDigestNumBytes;
+  static constexpr size_t kSizeOfElement = Blake2s256::kDigestNumBytes;
 
   MerkleCommitmentSchemeProver(size_t n_elements, size_t n_segments, ProverChannel* channel);
 
@@ -55,7 +55,7 @@ class MerkleCommitmentSchemeVerifier : public CommitmentSchemeVerifier {
  private:
   uint64_t n_elements_;
   VerifierChannel* channel_;
-  std::optional<Blake2s160> commitment_;
+  std::optional<Blake2s256> commitment_;
 };
 
 }  // namespace starkware

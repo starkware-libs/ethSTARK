@@ -6,37 +6,37 @@
 
 namespace starkware {
 
-namespace blake2s_160 {
+namespace blake2s_256 {
 namespace details {
 
-inline std::array<std::byte, Blake2s160::kDigestNumBytes> InitDigestFromSpan(
+inline std::array<std::byte, Blake2s256::kDigestNumBytes> InitDigestFromSpan(
     gsl::span<const std::byte> data) {
   ASSERT_RELEASE(
-      data.size() == Blake2s160::kDigestNumBytes, "Invalid digest initialization length.");
-  std::array<std::byte, Blake2s160::kDigestNumBytes> digest;  // NOLINT
+      data.size() == Blake2s256::kDigestNumBytes, "Invalid digest initialization length.");
+  std::array<std::byte, Blake2s256::kDigestNumBytes> digest;  // NOLINT
   std::copy(data.begin(), data.end(), digest.begin());
   return digest;
 }
 
 }  // namespace details
-}  // namespace blake2s_160
+}  // namespace blake2s_256
 
-inline Blake2s160::Blake2s160(gsl::span<const std::byte> data)
-    : buffer_(blake2s_160::details::InitDigestFromSpan(data)) {}
+inline Blake2s256::Blake2s256(gsl::span<const std::byte> data)
+    : buffer_(blake2s_256::details::InitDigestFromSpan(data)) {}
 
-inline const Blake2s160 Blake2s160::InitDigestTo(gsl::span<const std::byte> digest) {
-  return Blake2s160(digest);
+inline const Blake2s256 Blake2s256::InitDigestTo(gsl::span<const std::byte> digest) {
+  return Blake2s256(digest);
 }
 
-inline const Blake2s160 Blake2s160::Hash(const Blake2s160& val1, const Blake2s160& val2) {
+inline const Blake2s256 Blake2s256::Hash(const Blake2s256& val1, const Blake2s256& val2) {
   std::array<std::byte, 2 * kDigestNumBytes> data{};
   std::copy(val1.buffer_.begin(), val1.buffer_.end(), data.begin());
   std::copy(val2.buffer_.begin(), val2.buffer_.end(), data.begin() + kDigestNumBytes);
   return HashBytesWithLength(data);
 }
 
-inline const Blake2s160 Blake2s160::HashBytesWithLength(gsl::span<const std::byte> bytes) {
-  Blake2s160 result;
+inline const Blake2s256 Blake2s256::HashBytesWithLength(gsl::span<const std::byte> bytes) {
+  Blake2s256 result;
   blake2s_state ctx;
   blake2s_init(&ctx, kDigestNumBytes);
   blake2s_update(&ctx, bytes.data(), bytes.size());
@@ -45,16 +45,16 @@ inline const Blake2s160 Blake2s160::HashBytesWithLength(gsl::span<const std::byt
   return result;
 }
 
-inline bool Blake2s160::operator==(const Blake2s160& other) const {
+inline bool Blake2s256::operator==(const Blake2s256& other) const {
   return buffer_ == other.buffer_;
 }
-inline bool Blake2s160::operator!=(const Blake2s160& other) const { return !(*this == other); }
+inline bool Blake2s256::operator!=(const Blake2s256& other) const { return !(*this == other); }
 
-inline std::string Blake2s160::ToString() const {
+inline std::string Blake2s256::ToString() const {
   return BytesToHexString(buffer_, /*trim_leading_zeros=*/false);
 }
 
-inline std::ostream& operator<<(std::ostream& out, const Blake2s160& hash) {
+inline std::ostream& operator<<(std::ostream& out, const Blake2s256& hash) {
   return out << hash.ToString();
 }
 

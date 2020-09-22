@@ -51,7 +51,7 @@ static void RescueProverBenchmark(benchmark::State& state) {  // NOLINT
 
   auto trace_length = statement.GetAir().TraceLength();
   const JsonValue parameters = GetParametersJson(
-      /*trace_length=*/trace_length, /*log_n_cosets=*/blowup, /*security_bits=*/80,
+      /*trace_length=*/trace_length, /*log_n_cosets=*/blowup, /*security_bits=*/128,
       /*proof_of_work_bits=*/18, /*fri_steps=*/{1, 3, 3, 3, 3});
 
   // NOLINTNEXTLINE: Suppressing warnings for unused variable '_'.

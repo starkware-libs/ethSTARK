@@ -41,7 +41,7 @@ FieldElementT Pow(const FieldElementT& base, __uint128_t exp) {
 */
 inline BaseFieldElement GetSubGroupGenerator(uint64_t n) {
   ASSERT_RELEASE(IsPowerOfTwo(n), "Subgroup size must be a power of 2.");
-  const uint64_t quotient = SafeDiv(static_cast<uint64_t>(BaseFieldElement::FieldSize()) - 1, n);
+  const uint64_t quotient = SafeDiv(BaseFieldElement::FieldSize() - 1, n);
   return Pow(BaseFieldElement::Generator(), quotient);
 }
 

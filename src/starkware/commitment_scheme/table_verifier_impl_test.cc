@@ -17,7 +17,7 @@
 #include "starkware/commitment_scheme/merkle/merkle_commitment_scheme.h"
 #include "starkware/commitment_scheme/packaging_commitment_scheme.h"
 #include "starkware/commitment_scheme/table_prover_impl.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/error_handling/test_utils.h"
 #include "starkware/stl_utils/containers.h"
 #include "starkware/utils/maybe_owned_ptr.h"

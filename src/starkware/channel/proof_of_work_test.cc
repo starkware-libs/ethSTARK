@@ -6,7 +6,7 @@
 
 #include "starkware/channel/prover_channel.h"
 #include "starkware/channel/verifier_channel.h"
-#include "starkware/crypt_tools/blake2s_160.h"
+#include "starkware/crypt_tools/blake2s_256.h"
 #include "starkware/error_handling/test_utils.h"
 
 namespace starkware {
