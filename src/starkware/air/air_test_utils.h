@@ -16,7 +16,7 @@ namespace starkware {
 */
 class DummyAir : public Air {
  public:
-  explicit DummyAir(uint64_t trace_length) : Air(trace_length) {}
+  explicit DummyAir(uint64_t trace_length) : Air(trace_length, /*slackness_factor=*/1) {}
 
   uint64_t GetCompositionPolynomialDegreeBound() const override { return 2 * TraceLength(); }
 

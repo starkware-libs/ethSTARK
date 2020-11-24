@@ -11,6 +11,11 @@ inline ExtensionFieldElement ExtensionFieldElement::operator+(const BaseFieldEle
   return {coef0_ + rhs, coef1_, coef2_};
 }
 
+template <typename FieldElementT>
+ExtensionFieldElement ExtensionFieldElement::operator+=(const FieldElementT& rhs) {
+  return *this = *this + rhs;
+}
+
 inline ExtensionFieldElement ExtensionFieldElement::operator-(
     const ExtensionFieldElement& rhs) const {
   return {coef0_ - rhs.coef0_, coef1_ - rhs.coef1_, coef2_ - rhs.coef2_};

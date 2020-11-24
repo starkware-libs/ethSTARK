@@ -49,10 +49,14 @@ static void RescueProverBenchmark(benchmark::State& state) {  // NOLINT
 
   RescueStatement statement(public_input, private_input);
 
-  auto trace_length = statement.GetAir().TraceLength();
+  size_t security_bits = 128;
+  size_t proof_of_work_bits = 18;
+  size_t n_queries = DivCeil(security_bits - proof_of_work_bits, blowup);
+  auto trace_length = statement.GetAir(/*is_zero_knowledge=*/false, n_queries).TraceLength();
   const JsonValue parameters = GetParametersJson(
-      /*trace_length=*/trace_length, /*log_n_cosets=*/blowup, /*security_bits=*/128,
-      /*proof_of_work_bits=*/18, /*fri_steps=*/{1, 3, 3, 3, 3});
+      /*trace_length=*/trace_length, /*log_n_cosets=*/blowup, /*security_bits=*/security_bits,
+      /*proof_of_work_bits=*/proof_of_work_bits, /*fri_steps=*/{1, 3, 3, 3, 3},
+      /*is_zero_knowledge=*/false);
 
   // NOLINTNEXTLINE: Suppressing warnings for unused variable '_'.
   for (auto _ : state) {

@@ -36,7 +36,7 @@ class Statement {
     Generates and returns an AIR for the statement. The AIR is stored as a local member of the
     Statement class.
   */
-  virtual const Air& GetAir() = 0;
+  virtual const Air& GetAir(bool is_zero_knowledge, size_t n_queries) = 0;
 
   /*
     Returns the default initial seed to be used in the hash chain. This is obtained from the public
@@ -45,10 +45,17 @@ class Statement {
   virtual const std::vector<std::byte> GetInitialHashChainSeed() const = 0;
 
   /*
+    Returns the private seed, which is used to generate randomness that is known only to the prover
+    for the sake of zero knowledge. This is obtained from the private parameters in some
+    deterministic way.
+  */
+  virtual const std::vector<std::byte> GetZeroKnowledgeHashChainSeed() const = 0;
+
+  /*
     Builds and returns a trace for the given private input. The content of the private input depends
     on the specific statement.
   */
-  virtual Trace GetTrace() const = 0;
+  virtual Trace GetTrace(Prng* prng) const = 0;
 
   /*
     Evaluates the public input according to the private input, and returns a new public input JSON.

@@ -19,7 +19,9 @@ bool VerifierMainHelper(
     Statement* statement, const std::vector<std::byte>& proof, const JsonValue& parameters,
     const std::string& annotation_file_name) {
   try {
-    const Air& air = statement->GetAir();
+    const Air& air = statement->GetAir(
+        parameters["stark"]["enable_zero_knowledge"].AsBool(),
+        parameters["stark"]["fri"]["n_queries"].AsSizeT());
 
     const StarkParameters stark_params =
         StarkParameters::FromJson(parameters["stark"], UseOwned(&air));
@@ -30,12 +32,13 @@ bool VerifierMainHelper(
     }
 
     TableVerifierFactory<BaseFieldElement> base_table_verifier_factory =
-        [&channel](uint64_t n_rows, size_t n_columns) {
+        [&channel, &stark_params](uint64_t n_rows, size_t n_columns) {
           auto packaging_commitment_scheme = MakeCommitmentSchemeVerifier(
-              n_columns * BaseFieldElement::SizeInBytes(), n_rows, &channel);
+              n_columns * BaseFieldElement::SizeInBytes(), n_rows, &channel,
+              /*with_salt=*/stark_params.is_zero_knowledge);
 
           return std::make_unique<TableVerifierImpl<BaseFieldElement>>(
-              n_columns, UseMovedValue(std::move(packaging_commitment_scheme)), &channel);
+              n_columns, TakeOwnershipFrom(std::move(packaging_commitment_scheme)), &channel);
         };
 
     TableVerifierFactory<ExtensionFieldElement> extension_table_verifier_factory =
@@ -44,7 +47,7 @@ bool VerifierMainHelper(
               n_columns * ExtensionFieldElement::SizeInBytes(), n_rows, &channel);
 
           return std::make_unique<TableVerifierImpl<ExtensionFieldElement>>(
-              n_columns, UseMovedValue(std::move(packaging_commitment_scheme)), &channel);
+              n_columns, TakeOwnershipFrom(std::move(packaging_commitment_scheme)), &channel);
         };
 
     AnnotationScope scope(&channel, statement->GetName());

@@ -28,7 +28,7 @@ class RescueStatement : public Statement {
   using WitnessT = typename RescueAir::WitnessT;
   explicit RescueStatement(const JsonValue& public_input, std::optional<JsonValue> private_input);
 
-  const Air& GetAir() override;
+  const Air& GetAir(bool is_zero_knowledge, size_t n_queries) override;
 
   /*
     Returns the serialization of: ["Rescue hash chain", output, chain_length],
@@ -36,7 +36,13 @@ class RescueStatement : public Statement {
   */
   const std::vector<std::byte> GetInitialHashChainSeed() const override;
 
-  Trace GetTrace() const override;
+  /*
+    Returns the serialization of: ["Rescue hash chain private seed", witness],
+    where each of the field elements in witness is written as 8 bytes.
+  */
+  const std::vector<std::byte> GetZeroKnowledgeHashChainSeed() const override;
+
+  Trace GetTrace(Prng* prng) const override;
 
   /*
     An auxiliary function for FixPublicInput(). Given a private input, returns the corresponding
@@ -68,6 +74,8 @@ class RescueStatement : public Statement {
   WordT output_;
   uint64_t chain_length_;
   std::unique_ptr<RescueAir> air_;
+  // As long as air_ is not initialized, defaults to false.
+  bool is_zero_knowledge_ = false;
   std::optional<WitnessT> witness_;
 };
 

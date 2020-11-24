@@ -208,12 +208,15 @@ TEST(OutOfDomainSampling, EndToEnd) {
   // Setup domain.
   Prng channel_prng;
   ProverChannel prover_channel(channel_prng.Clone());
-  const EvaluationDomain evaluation_domain(trace_length, n_cosets);
 
   // Initialize dummy test air.
   const BaseFieldElement claimed_res =
       TestAir::PublicInputFromPrivateInput(secret, res_claim_index);
-  const TestAir test_air(trace_length, res_claim_index, claimed_res);
+  const TestAir test_air(
+      trace_length, res_claim_index, claimed_res,
+      /*is_zero_knowledge=*/prng.UniformInt(0, 1) == 1,
+      /*n_queries=*/20);
+  const EvaluationDomain evaluation_domain(test_air.TraceLength(), n_cosets);
 
   // Commit on trace.
   const size_t n_columns = test_air.NumColumns();
@@ -221,9 +224,7 @@ TEST(OutOfDomainSampling, EndToEnd) {
       GetTableProverFactory<BaseFieldElement>(&prover_channel);
   CommittedTraceProver<BaseFieldElement> trace_prover(
       UseOwned(&evaluation_domain), n_columns, base_table_prover_factory);
-  trace_prover.Commit(
-      TestAir::GetTrace(secret, trace_length, res_claim_index), evaluation_domain.TraceDomain(),
-      true);
+  trace_prover.Commit(test_air.GetTrace(secret, &prng), evaluation_domain.TraceDomain(), true);
 
   // Create composition polynomial.
   const size_t num_random_coefficients_required = test_air.NumRandomCoefficients();
@@ -239,7 +240,8 @@ TEST(OutOfDomainSampling, EndToEnd) {
 
   // Break composition polynomial.
   const size_t n_breaks = oracle_prover.ConstraintsDegreeBound();
-  const Coset composition_eval_domain(trace_length * n_breaks, BaseFieldElement::Generator());
+  const Coset composition_eval_domain(
+      test_air.TraceLength() * n_breaks, BaseFieldElement::Generator());
   const std::vector<ExtensionFieldElement> composition_polynomial_eval =
       oracle_prover.EvalComposition(1, oracle_prover.ConstraintsDegreeBound());
   const TableProverFactory<ExtensionFieldElement> extension_table_prover_factory =

@@ -10,7 +10,6 @@
 #include "starkware/air/rescue/rescue_constants.h"
 #include "starkware/composition_polynomial/composition_polynomial.h"
 #include "starkware/error_handling/test_utils.h"
-#include "starkware/math/math.h"
 
 namespace starkware {
 namespace {
@@ -61,11 +60,14 @@ TEST(RescueAir, Correctness) {
   // Compute the Rescue hash chain.
   const RescueAir::WordT output = RescueAir::PublicInputFromPrivateInput(witness);
 
-  RescueAir rescue_air(output, chain_length);
+  RescueAir rescue_air(
+      output, chain_length, /*is_zero_knowledge=*/prng.UniformInt(0, 1) == 1,
+      /*n_queries=*/100);
 
-  Trace trace = rescue_air.GetTrace(witness);
-  const size_t output_row =
-      RescueConstants::kBatchHeight * SafeDiv(chain_length, RescueAir::kHashesPerBatch) - 1;
+  Trace trace = rescue_air.GetTrace(witness, &prng);
+  const uint64_t chain_rows =
+      SafeDiv(chain_length, RescueAir::kHashesPerBatch) * RescueAir::kBatchHeight;
+  const size_t output_row = (chain_rows - 1) * SafeDiv(trace.Length(), Pow2(Log2Ceil(chain_rows)));
   EXPECT_EQ(
       output, RescueAir::WordT({
                   trace.GetColumn(0)[output_row],
@@ -80,7 +82,7 @@ TEST(RescueAir, Correctness) {
         {BaseFieldElement::RandomElement(&prng), BaseFieldElement::RandomElement(&prng),
          BaseFieldElement::RandomElement(&prng), BaseFieldElement::RandomElement(&prng)});
     EXPECT_ASSERT(
-        rescue_air.GetTrace(wrong_witness),
+        rescue_air.GetTrace(wrong_witness, &prng),
         HasSubstr(
             "Witness size is " + std::to_string(chain_length + 2) + ", should be " +
             std::to_string(chain_length + 1)));
@@ -92,7 +94,8 @@ TEST(RescueAir, Correctness) {
     auto random_element_index = prng.template UniformInt<size_t>(0, RescueAir::kWordSize - 1);
     wrong_witness[random_row_index][random_element_index] += BaseFieldElement::One();
     EXPECT_ASSERT(
-        rescue_air.GetTrace(wrong_witness), HasSubstr("Given witness is not a correct preimage"));
+        rescue_air.GetTrace(wrong_witness, &prng),
+        HasSubstr("Given witness is not a correct preimage"));
   }
 
   const std::vector<ExtensionFieldElement> random_coefficients =
@@ -119,7 +122,9 @@ TEST(RescueAir, ConstraintsEval) {
 
   // Compute the Rescue hash chain.
   const RescueAir::WordT output = RescueAir::PublicInputFromPrivateInput(witness);
-  RescueAir rescue_air(output, chain_length);
+  RescueAir rescue_air(
+      output, chain_length, /*is_zero_knowledge=*/prng.UniformInt(0, 1) == 1,
+      /*n_queries=*/10);
 
   auto neighbors = prng.RandomFieldElementVector<BaseFieldElement>(2 * RescueAir::kStateSize);
   auto periodic_columns =
@@ -137,32 +142,6 @@ TEST(RescueAir, ConstraintsEval) {
       random_coefficients,
       std::vector<ExtensionFieldElement>{point_powers.begin(), point_powers.end()}, shifts);
   EXPECT_EQ(eval_as_base, eval_as_extension);
-}
-
-TEST(RescueAir, BatchedThirdRoot) {
-  Prng prng;
-
-  RescueAir::State state({
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-      BaseFieldElement::RandomElement(&prng),
-  });
-
-  const RescueAir::State batched_third_roots = state.BatchedThirdRoot();
-
-  for (size_t i = 0; i < RescueAir::kStateSize; ++i) {
-    EXPECT_EQ(batched_third_roots[i], Pow(state[i], RescueAir::kCubeInverseExponent));
-    EXPECT_EQ(Pow(batched_third_roots[i], 3), state[i]);
-  }
 }
 
 }  // namespace

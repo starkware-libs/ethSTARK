@@ -48,8 +48,11 @@ class Air {
  public:
   virtual ~Air() = default;
 
-  explicit Air(uint64_t trace_length) : trace_length_(trace_length) {
-    ASSERT_RELEASE(IsPowerOfTwo(trace_length), "trace_length must be a power of 2.");
+  explicit Air(uint64_t original_trace_length, size_t slackness_factor)
+      : slackness_factor_(slackness_factor),
+        original_trace_length_(original_trace_length),
+        trace_length_(original_trace_length * slackness_factor_) {
+    ASSERT_RELEASE(IsPowerOfTwo(trace_length_), "trace_length must be a power of 2.");
   }
 
   /*
@@ -91,6 +94,20 @@ class Air {
   virtual uint64_t NumColumns() const = 0;
 
  protected:
+  size_t ComputeSlacknessFactor(size_t original_trace_length, size_t n_queries) const {
+    std::vector<size_t> deep_queries_count(NumColumns(), 0);
+    for (auto [row, column] : GetMask()) {  // NOLINT: structured binding.
+      deep_queries_count[column]++;
+    }
+    const size_t max_deep_queries_count =
+        *std::max_element(deep_queries_count.begin(), deep_queries_count.end());
+    const size_t modified_trace_length =
+        Pow2(Log2Ceil(original_trace_length + max_deep_queries_count + n_queries));
+    return SafeDiv(modified_trace_length, original_trace_length);
+  }
+
+  size_t slackness_factor_;
+  uint64_t original_trace_length_;
   uint64_t trace_length_;
 };
 

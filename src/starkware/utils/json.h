@@ -1,10 +1,12 @@
 #ifndef STARKWARE_UTILS_JSON_H_
 #define STARKWARE_UTILS_JSON_H_
 
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "third_party/gsl/gsl-lite.hpp"
 #include "third_party/jsoncpp/json/json.h"
 
 #include "starkware/error_handling/error_handling.h"
@@ -45,7 +47,11 @@ class JsonValue {
 
   bool HasValue() const;
 
+  bool AsBool() const;
+
   uint64_t AsUint64() const;
+
+  void AsBytesFromHexString(gsl::span<std::byte> as_bytes_out) const;
 
   size_t AsSizeT() const;
 
@@ -78,6 +84,11 @@ class JsonValue {
     Fails if the current value is not an integer.
   */
   void AssertInt() const;
+
+  /*
+    Fails if the current value is not a boolean.
+  */
+  void AssertBool() const;
 
   /*
     Fails if the current value is not an unsigned integer (uint64).

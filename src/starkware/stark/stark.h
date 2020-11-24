@@ -32,11 +32,11 @@ namespace starkware {
 struct StarkParameters {
   StarkParameters(
       size_t n_evaluation_domain_cosets, size_t trace_length, MaybeOwnedPtr<const Air> air,
-      MaybeOwnedPtr<FriParameters> fri_params);
+      MaybeOwnedPtr<FriParameters> fri_params, bool is_zero_knowledge);
 
   size_t TraceLength() const { return evaluation_domain.TraceSize(); }
   size_t NumCosets() const { return evaluation_domain.NumCosets(); }
-  size_t NumColumns() const { return (air->NumColumns()); }
+  size_t NumColumns() const { return air->NumColumns() + (is_zero_knowledge ? 1 : 0); }
 
   static StarkParameters FromJson(const JsonValue& json, MaybeOwnedPtr<const Air> air);
 
@@ -45,6 +45,7 @@ struct StarkParameters {
 
   MaybeOwnedPtr<const Air> air;
   MaybeOwnedPtr<FriParameters> fri_params;
+  bool is_zero_knowledge;
 };
 
 struct StarkProverConfig {

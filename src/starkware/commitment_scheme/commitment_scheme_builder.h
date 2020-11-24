@@ -10,21 +10,22 @@
 #include "starkware/channel/prover_channel.h"
 #include "starkware/commitment_scheme/commitment_scheme.h"
 #include "starkware/commitment_scheme/packaging_commitment_scheme.h"
+#include "starkware/commitment_scheme/salted_commitment_scheme.h"
 
 namespace starkware {
 
 /*
-  Creates a packaging commitment scheme prover.
+  Creates a commitment scheme prover.
 */
-PackagingCommitmentSchemeProver MakeCommitmentSchemeProver(
-    size_t size_of_element, size_t n_elements_in_segment, size_t n_segments,
-    ProverChannel* channel);
+std::unique_ptr<CommitmentSchemeProver> MakeCommitmentSchemeProver(
+    size_t size_of_element, size_t n_elements_in_segment, size_t n_segments, ProverChannel* channel,
+    bool with_salt = false, Prng* prng = nullptr);
 
 /*
-  Creates a packaging commitment scheme verifier.
+  Creates a commitment scheme verifier.
 */
-PackagingCommitmentSchemeVerifier MakeCommitmentSchemeVerifier(
-    size_t size_of_element, uint64_t n_elements, VerifierChannel* channel);
+std::unique_ptr<CommitmentSchemeVerifier> MakeCommitmentSchemeVerifier(
+    size_t size_of_element, uint64_t n_elements, VerifierChannel* channel, bool with_salt = false);
 
 }  // namespace starkware
 

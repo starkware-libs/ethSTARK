@@ -18,7 +18,6 @@ struct RescueConstants {
  public:
   static constexpr size_t kStateSize = 12;
   static constexpr size_t kNumRounds = 10;
-  static constexpr size_t kBatchHeight = 32;
 
   using VectorT = std::array<BaseFieldElement, kStateSize>;
   using MatrixT = std::array<VectorT, kStateSize>;

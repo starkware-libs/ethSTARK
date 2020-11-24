@@ -30,16 +30,45 @@ struct MerkleCommitmentSchemePairT {
 
   static ProverT CreateProver(
       ProverChannel* prover_channel, size_t /*size_of_element*/, size_t n_elements_in_segment,
-      size_t n_segments) {
-    return ProverT(n_elements_in_segment * n_segments, n_segments, prover_channel);
+      size_t n_segments, Prng* /*prng*/) {
+    return MerkleCommitmentSchemeProver(
+        n_elements_in_segment * n_segments, n_segments, prover_channel);
   }
 
   static VerifierT CreateVerifier(
       VerifierChannel* verifier_channel, size_t /*size_of_element*/, size_t n_elements) {
-    return VerifierT(n_elements, verifier_channel);
+    return MerkleCommitmentSchemeVerifier(n_elements, verifier_channel);
   }
 
   static size_t DrawSizeOfElement(Prng* /*prng*/) { return Blake2s256::kDigestNumBytes; }
+
+  static constexpr size_t kMinElementSize = Blake2s256::kDigestNumBytes;
+};
+
+struct SaltedCommitmentSchemePairT {
+  using ProverT = SaltedCommitmentSchemeProver;
+  using VerifierT = SaltedCommitmentSchemeVerifier;
+
+  static ProverT CreateProver(
+      ProverChannel* prover_channel, size_t size_of_element, size_t n_elements_in_segment,
+      size_t n_segments, Prng* prng) {
+    return SaltedCommitmentSchemeProver(
+        size_of_element, n_elements_in_segment * n_segments, n_segments, prover_channel,
+        std::make_unique<MerkleCommitmentSchemeProver>(
+            n_elements_in_segment * n_segments, n_segments, prover_channel),
+        prng);
+  }
+
+  static VerifierT CreateVerifier(
+      VerifierChannel* verifier_channel, size_t size_of_element, size_t n_elements) {
+    return SaltedCommitmentSchemeVerifier(
+        size_of_element, n_elements, verifier_channel,
+        std::make_unique<MerkleCommitmentSchemeVerifier>(n_elements, verifier_channel));
+  }
+
+  static size_t DrawSizeOfElement(Prng* prng) {
+    return prng->UniformInt<size_t>(1, sizeof(Blake2s256) * 5);
+  }
 
   static constexpr size_t kMinElementSize = Blake2s256::kDigestNumBytes;
 };
@@ -49,14 +78,22 @@ struct PackagingCommitmentSchemePairT {
   using VerifierT = PackagingCommitmentSchemeVerifier;
   static ProverT CreateProver(
       ProverChannel* prover_channel, size_t size_of_element, size_t n_elements_in_segment,
-      size_t n_segments) {
-    return MakeCommitmentSchemeProver(
-        size_of_element, n_elements_in_segment, n_segments, prover_channel);
+      size_t n_segments, Prng* /*prng*/) {
+    return PackagingCommitmentSchemeProver(
+        size_of_element, n_elements_in_segment, n_segments, prover_channel,
+        [n_segments, prover_channel](size_t n_elements) {
+          return std::make_unique<MerkleCommitmentSchemeProver>(
+              n_elements, n_segments, prover_channel);
+        });
   }
 
   static VerifierT CreateVerifier(
       VerifierChannel* verifier_channel, size_t size_of_element, size_t n_elements) {
-    return MakeCommitmentSchemeVerifier(size_of_element, n_elements, verifier_channel);
+    return PackagingCommitmentSchemeVerifier(
+        size_of_element, n_elements, verifier_channel,
+        [verifier_channel](size_t n_elements) -> std::unique_ptr<CommitmentSchemeVerifier> {
+          return std::make_unique<MerkleCommitmentSchemeVerifier>(n_elements, verifier_channel);
+        });
   }
 
   static size_t DrawSizeOfElement(Prng* prng) {
@@ -66,14 +103,15 @@ struct PackagingCommitmentSchemePairT {
   static constexpr size_t kMinElementSize = 1;
 };
 
-using TestTypes = ::testing::Types<MerkleCommitmentSchemePairT, PackagingCommitmentSchemePairT>;
+using TestTypes = ::testing::Types<
+    MerkleCommitmentSchemePairT, SaltedCommitmentSchemePairT, PackagingCommitmentSchemePairT>;
 
 /*
   Returns number of segments to use, N, such that:
 
   1) N is a power of 2.
 
-  2) size_of_element * n_element  >= N * min_segment_bytes (in particular, each segment is of length
+  2) size_of_element * n_elements >= N * min_segment_bytes (in particular, each segment is of length
   at least min_segment_bytes).
 
   3) N <= n_elements.
@@ -154,9 +192,12 @@ class CommitmentScheme : public ::testing::Test {
     // Initialize prover channel.
     ProverChannel prover_channel = GetProverChannel();
 
+    // Initialize prng.
+    Prng prng;
+
     // Initialize the commitment-scheme prover side.
-    CommitmentProver committer =
-        T::CreateProver(&prover_channel, size_of_element_, GetNumElementsInSegment(), n_segments_);
+    CommitmentProver committer = T::CreateProver(
+        &prover_channel, size_of_element_, GetNumElementsInSegment(), n_segments_, &prng);
 
     // Commit on the data_.
     for (size_t i = 0; i < n_segments_; ++i) {

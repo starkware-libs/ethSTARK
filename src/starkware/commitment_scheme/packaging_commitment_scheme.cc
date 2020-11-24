@@ -14,13 +14,13 @@ namespace starkware {
 PackagingCommitmentSchemeProver::PackagingCommitmentSchemeProver(
     size_t size_of_element, uint64_t n_elements_in_segment, size_t n_segments,
     ProverChannel* channel,
-    const MerkleCommitmentSchemeProverFactory& merkle_commitment_scheme_factory)
+    const PackagingCommitmentSchemeProverFactory& inner_commitment_scheme_factory)
     : size_of_element_(size_of_element),
       n_elements_in_segment_(n_elements_in_segment),
       n_segments_(n_segments),
       channel_(channel),
       packer_(PackerHasher(size_of_element_, n_segments_ * n_elements_in_segment_)),
-      merkle_commitment_scheme_(merkle_commitment_scheme_factory(packer_.k_n_packages)),
+      inner_commitment_scheme_(inner_commitment_scheme_factory(packer_.k_n_packages)),
       missing_element_queries_({}) {}
 
 size_t PackagingCommitmentSchemeProver::NumSegments() const { return n_segments_; }
@@ -37,11 +37,11 @@ void PackagingCommitmentSchemeProver::AddSegmentForCommitment(
       segment_data.size() == n_elements_in_segment_ * size_of_element_,
       "Segment size is " + std::to_string(segment_data.size()) + " instead of the expected " +
           std::to_string(size_of_element_ * n_elements_in_segment_));
-  merkle_commitment_scheme_->AddSegmentForCommitment(
+  inner_commitment_scheme_->AddSegmentForCommitment(
       packer_.PackAndHash(segment_data), segment_index);
 }
 
-void PackagingCommitmentSchemeProver::Commit() { merkle_commitment_scheme_->Commit(); }
+void PackagingCommitmentSchemeProver::Commit() { inner_commitment_scheme_->Commit(); }
 
 std::vector<uint64_t> PackagingCommitmentSchemeProver::StartDecommitmentPhase(
     const std::set<uint64_t>& queries) {
@@ -55,17 +55,17 @@ std::vector<uint64_t> PackagingCommitmentSchemeProver::StartDecommitmentPhase(
   for (uint64_t q : queries_) {
     package_queries_to_inner_layer.insert(q / packer_.k_n_elements_in_package);
   }
-  // Send required queries to merkle_commitment_scheme_ and get required queries needed for it.
-  auto missing_package_queries_merkle_layer =
-      merkle_commitment_scheme_->StartDecommitmentPhase(package_queries_to_inner_layer);
+  // Send required queries to inner_commitment_scheme_ and get required queries needed for it.
+  auto missing_package_queries_inner_layer =
+      inner_commitment_scheme_->StartDecommitmentPhase(package_queries_to_inner_layer);
   // Translate inner layer queries to current layer requests for element.
   const auto missing_element_queries_to_inner_layer =
-      packer_.GetElementsInPackages(missing_package_queries_merkle_layer);
+      packer_.GetElementsInPackages(missing_package_queries_inner_layer);
 
-  n_missing_elements_for_merkle_layer_ = missing_element_queries_to_inner_layer.size();
+  n_missing_elements_for_inner_layer_ = missing_element_queries_to_inner_layer.size();
   std::vector<uint64_t> all_missing_elements;
   all_missing_elements.reserve(
-      missing_element_queries_.size() + n_missing_elements_for_merkle_layer_);
+      missing_element_queries_.size() + n_missing_elements_for_inner_layer_);
   // missing_element_queries and missing_element_queries_to_inner_layer are disjoint sets.
   all_missing_elements.insert(
       all_missing_elements.end(), missing_element_queries_.begin(), missing_element_queries_.end());
@@ -79,7 +79,7 @@ std::vector<uint64_t> PackagingCommitmentSchemeProver::StartDecommitmentPhase(
 void PackagingCommitmentSchemeProver::Decommit(gsl::span<const std::byte> elements_data) {
   ASSERT_RELEASE(
       elements_data.size() == size_of_element_ * (missing_element_queries_.size() +
-                                                  n_missing_elements_for_merkle_layer_),
+                                                  n_missing_elements_for_inner_layer_),
       "Data size of data given in Decommit doesn't fit request in StartDecommitmentPhase.");
 
   // Send to channel the elements current packaging commitment scheme got according to its request
@@ -91,25 +91,25 @@ void PackagingCommitmentSchemeProver::Decommit(gsl::span<const std::byte> elemen
         "To complete packages, element #" + std::to_string(missing_element_queries_[i]));
   }
 
-  // Pack and hash the data merkle_commitment_scheme_ requested in StartDecommitmentPhase and send
-  // it to merkle_commitment_scheme_.
-  std::vector<std::byte> data_for_merkle_layer = packer_.PackAndHash(elements_data.subspan(
+  // Pack and hash the data inner_commitment_scheme_ requested in StartDecommitmentPhase and send
+  // it to inner_commitment_scheme_.
+  std::vector<std::byte> data_for_inner_layer = packer_.PackAndHash(elements_data.subspan(
       missing_element_queries_.size() * size_of_element_,
-      n_missing_elements_for_merkle_layer_ * size_of_element_));
-  merkle_commitment_scheme_->Decommit(data_for_merkle_layer);
+      n_missing_elements_for_inner_layer_ * size_of_element_));
+  inner_commitment_scheme_->Decommit(data_for_inner_layer);
 }
 
 PackagingCommitmentSchemeVerifier::PackagingCommitmentSchemeVerifier(
     size_t size_of_element, uint64_t n_elements, VerifierChannel* channel,
-    const PackagingCommitmentSchemeVerifierFactory& merkle_commitment_scheme_factory)
+    const PackagingCommitmentSchemeVerifierFactory& inner_commitment_scheme_factory)
     : size_of_element_(size_of_element),
       n_elements_(n_elements),
       channel_(channel),
       packer_(PackerHasher(size_of_element, n_elements_)),
-      merkle_commitment_scheme_(merkle_commitment_scheme_factory(packer_.k_n_packages)) {}
+      inner_commitment_scheme_(inner_commitment_scheme_factory(packer_.k_n_packages)) {}
 
 void PackagingCommitmentSchemeVerifier::ReadCommitment() {
-  merkle_commitment_scheme_->ReadCommitment();
+  inner_commitment_scheme_->ReadCommitment();
 }
 
 bool PackagingCommitmentSchemeVerifier::VerifyIntegrity(
@@ -131,7 +131,7 @@ bool PackagingCommitmentSchemeVerifier::VerifyIntegrity(
   // Convert data to bytes.
   const std::map<uint64_t, std::vector<std::byte>> bytes_to_verify =
       packer_.PackAndHash(full_data_to_verify);
-  return merkle_commitment_scheme_->VerifyIntegrity(bytes_to_verify);
+  return inner_commitment_scheme_->VerifyIntegrity(bytes_to_verify);
 }
 
 size_t PackagingCommitmentSchemeVerifier::GetNumOfPackages() const { return packer_.k_n_packages; }

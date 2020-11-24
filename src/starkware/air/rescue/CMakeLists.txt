@@ -1,8 +1,14 @@
+add_library(rescue_air_utils rescue_air_utils.cc)
+
+add_executable(rescue_air_utils_test rescue_air_utils_test.cc)
+target_link_libraries(rescue_air_utils_test algebra starkware_gtest rescue_air_utils)
+add_test(rescue_air_utils_test rescue_air_utils_test)
+
 add_library(rescue_air rescue_air.cc)
-target_link_libraries(rescue_air composition_polynomial)
+target_link_libraries(rescue_air rescue_air_utils composition_polynomial)
 
 add_executable(rescue_air_test rescue_air_test.cc)
-target_link_libraries(rescue_air_test starkware_gtest algebra rescue_air air_test_utils)
+target_link_libraries(rescue_air_test starkware_gtest algebra rescue_air rescue_air_utils air_test_utils)
 add_test(rescue_air_test rescue_air_test)
 
 add_executable(rescue_constants_test rescue_constants_test.cc)

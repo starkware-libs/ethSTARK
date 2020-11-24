@@ -30,7 +30,8 @@ class PeriodicColumn {
     Constructs a PeriodicColumn whose evaluation on the trace domain is composed of repetitions of
     the given values. Namely, f(trace_generator^i) = values[i % values.size()].
   */
-  PeriodicColumn(gsl::span<const BaseFieldElement> values, uint64_t trace_size);
+  PeriodicColumn(
+      gsl::span<const BaseFieldElement> values, uint64_t trace_size, size_t slackness_factor = 1);
 
   /*
     Returns the evaluation of the interpolation polynomial at a given point.

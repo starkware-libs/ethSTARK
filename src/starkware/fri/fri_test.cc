@@ -380,7 +380,7 @@ class FriEndToEndTest : public testing::Test {
               &p_channel);
 
           return std::make_unique<TableProverImpl<ExtensionFieldElement>>(
-              n_columns, UseMovedValue(std::move(packaging_commitment_scheme)), &p_channel);
+              n_columns, TakeOwnershipFrom(std::move(packaging_commitment_scheme)), &p_channel);
         };
 
     FriProver::FirstLayerCallback first_layer_queries_callback =
@@ -408,7 +408,7 @@ class FriEndToEndTest : public testing::Test {
           ExtensionFieldElement::SizeInBytes() * n_columns, n_rows, &v_channel);
 
       return std::make_unique<TableVerifierImpl<ExtensionFieldElement>>(
-          n_columns, UseMovedValue(std::move(packaging_commitment_scheme)), &v_channel);
+          n_columns, TakeOwnershipFrom(std::move(packaging_commitment_scheme)), &v_channel);
     };
 
     FriVerifier::FirstLayerCallback first_layer_queries_callback =

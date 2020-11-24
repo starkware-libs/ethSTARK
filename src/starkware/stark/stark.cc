@@ -77,11 +77,12 @@ static Coset GenerateCompositionDomain(const Air& air) {
 
 StarkParameters::StarkParameters(
     size_t n_evaluation_domain_cosets, size_t trace_length, MaybeOwnedPtr<const Air> air,
-    MaybeOwnedPtr<FriParameters> fri_params)
+    MaybeOwnedPtr<FriParameters> fri_params, bool is_zero_knowledge)
     : evaluation_domain(trace_length, n_evaluation_domain_cosets),
       composition_eval_domain(GenerateCompositionDomain(*air)),
       air(std::move(air)),
-      fri_params(std::move(fri_params)) {
+      fri_params(std::move(fri_params)),
+      is_zero_knowledge(is_zero_knowledge) {
   ASSERT_RELEASE(
       IsPowerOfTwo(n_evaluation_domain_cosets), "The number of cosets must be a power of 2.");
 
@@ -107,13 +108,20 @@ StarkParameters StarkParameters::FromJson(const JsonValue& json, MaybeOwnedPtr<c
       log_n_cosets >= log_max_constraint_degree,
       "The blowup factor must be at least " + std::to_string(log_max_constraint_degree) + ".");
   ASSERT_RELEASE(
-      log_n_cosets <= 10, "The blowup factor cannot be greater than 1024 (log_n_cosets <= 10).");
+      log_n_cosets <= 14, "The blowup factor cannot be greater than 2**14 (log_n_cosets <= 14).");
   const size_t n_cosets = Pow2(log_n_cosets);
 
   FriParameters fri_params = FriParameters::FromJson(json["fri"], log_trace_length, log_n_cosets);
 
+  bool is_zero_knowledge = json["enable_zero_knowledge"].AsBool();
+  if (is_zero_knowledge) {
+    ASSERT_RELEASE(
+        fri_params.fri_step_list[0] == 0, "For zero knowledge set the first fri step to 0.");
+  }
+
   return StarkParameters(
-      n_cosets, trace_length, std::move(air), UseMovedValue(std::move(fri_params)));
+      n_cosets, trace_length, std::move(air), UseMovedValue(std::move(fri_params)),
+      is_zero_knowledge);
 }
 
 // ------------------------------------------------------------------------------------------
@@ -224,7 +232,9 @@ CompositionOracleProver StarkProver::OutOfDomainSamplingProve(
   auto boundary_conditions = oods::ProveOods(channel_.get(), original_oracle, composition_trace);
   auto boundary_air = oods::CreateBoundaryAir(
       params_->evaluation_domain.TraceSize(), original_oracle.Width() + n_breaks,
-      std::move(boundary_conditions));
+      std::move(boundary_conditions),
+      params_->is_zero_knowledge ? std::optional<size_t>(original_oracle.Width() - 1)
+                                 : std::nullopt);
 
   // Move the trace from original_oracle.
   auto trace = std::move(original_oracle).MoveTrace();
@@ -251,7 +261,7 @@ void StarkProver::ValidateTraceSize(const size_t n_rows, const size_t n_columns)
           " is inconsistent with actual trace length " +
           std::to_string(params_->evaluation_domain.TraceSize()) + ".");
   ASSERT_RELEASE(
-      params_->air->NumColumns() == n_columns,
+      params_->NumColumns() == n_columns,
       "Trace width parameter is inconsistent with actual trace width.");
 }
 
@@ -347,7 +357,9 @@ CompositionOracleVerifier StarkVerifier::OutOfDomainSamplingVerify(
   auto boundary_air = oods::CreateBoundaryAir(
       params_->evaluation_domain.TraceSize(),
       original_oracle.Width() + original_oracle.ConstraintsDegreeBound(),
-      std::move(boundary_conditions));
+      std::move(boundary_conditions),
+      params_->is_zero_knowledge ? std::optional<size_t>(original_oracle.Width() - 1)
+                                 : std::nullopt);
   {
     auto oods_composition_polynomial = CreateCompositionPolynomial(
         channel_.get(), params_->evaluation_domain.TraceGenerator(), *boundary_air);
@@ -371,7 +383,7 @@ void StarkVerifier::VerifyStark() {
   {
     AnnotationScope scope(channel_.get(), "Original");
     CommittedTraceVerifier<BaseFieldElement> trace_verifier(
-        ReadTraceCommitment(params_->air->NumColumns()));
+        ReadTraceCommitment(params_->NumColumns()));
     trace = UseMovedValue(std::move(trace_verifier));
   }
 

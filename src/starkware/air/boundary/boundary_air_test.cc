@@ -43,9 +43,11 @@ TEST(BoundaryAir, Correctness) {
   }
 
   // Compute correct boundary conditions.
+  bool add_zero_knowledge = prng.UniformInt<size_t>(0, 1) == 1;
+  const int64_t num_unconstrained = add_zero_knowledge ? 1 : 0;
   std::vector<std::tuple<size_t, ExtensionFieldElement, ExtensionFieldElement>> boundary_conditions;
   for (size_t condition_index = 0; condition_index < n_conditions; ++condition_index) {
-    const size_t column_index = prng.UniformInt<size_t>(0, n_columns - 1);
+    const size_t column_index = prng.UniformInt<size_t>(0, n_columns - num_unconstrained - 1);
     auto points_x = prng.RandomFieldElementVector<ExtensionFieldElement>(1);
     auto points_y = ExtensionFieldElement::UninitializedVector(1);
 
@@ -53,7 +55,9 @@ TEST(BoundaryAir, Correctness) {
     boundary_conditions.emplace_back(column_index, points_x[0], points_y[0]);
   }
 
-  BoundaryAir air(trace_length, n_columns, boundary_conditions);
+  BoundaryAir air(
+      trace_length, n_columns, boundary_conditions,
+      add_zero_knowledge ? std::optional<size_t>(n_columns - 1) : std::nullopt);
 
   const std::vector<ExtensionFieldElement> random_coefficients =
       prng.RandomFieldElementVector<ExtensionFieldElement>(air.NumRandomCoefficients());
@@ -61,10 +65,10 @@ TEST(BoundaryAir, Correctness) {
   const uint64_t actual_degree =
       ComputeCompositionDegree(air, Trace(std::move(trace)), random_coefficients);
 
-  // Degree is expected to be trace_length - 2 (and not trace_length - 1) as we do not apply degree
-  // adjustments.
-  EXPECT_EQ(trace_length - 2, actual_degree);
-  EXPECT_EQ(air.GetCompositionPolynomialDegreeBound() - 2, actual_degree);
+  // If all columns are constrained, then degree is expected to be trace_length - 2 (and not
+  // trace_length - 1) as we do not apply degree adjustments.
+  EXPECT_EQ(actual_degree, add_zero_knowledge ? trace_length - 1 : trace_length - 2);
+  EXPECT_EQ(air.GetCompositionPolynomialDegreeBound(), trace_length);
 }
 
 /*
@@ -86,16 +90,19 @@ TEST(BoundaryAir, Soundeness) {
   }
 
   // Compute incorrect boundary conditions.
+  bool add_zero_knowledge = prng.UniformInt<size_t>(0, 1) == 1;
+  const int64_t num_unconstrained = add_zero_knowledge ? 1 : 0;
   std::vector<std::tuple<size_t, ExtensionFieldElement, ExtensionFieldElement>> boundary_conditions;
   for (size_t condition_index = 0; condition_index < n_conditions; ++condition_index) {
-    const size_t column_index = prng.UniformInt<size_t>(0, n_columns - 1);
-
+    const size_t column_index = prng.UniformInt<size_t>(0, n_columns - num_unconstrained - 1);
     boundary_conditions.emplace_back(
         column_index, ExtensionFieldElement::RandomElement(&prng),
         ExtensionFieldElement::RandomElement(&prng));
   }
 
-  BoundaryAir air(trace_length, n_columns, boundary_conditions);
+  BoundaryAir air(
+      trace_length, n_columns, boundary_conditions,
+      add_zero_knowledge ? std::optional<size_t>(n_columns - 1) : std::nullopt);
 
   const std::vector<ExtensionFieldElement> random_coefficients =
       prng.RandomFieldElementVector<ExtensionFieldElement>(air.NumRandomCoefficients());

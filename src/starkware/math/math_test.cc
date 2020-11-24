@@ -41,7 +41,7 @@ TEST(Math, SafeLog2) {
   EXPECT_ASSERT(SafeLog2(33), HasSubstr("must be a power of 2."));
 }
 
-TEST(Math, DivRoundUp) {
+TEST(Math, DivCeil) {
   EXPECT_EQ(DivCeil(7U, 3U), 3U);
   EXPECT_EQ(DivCeil(16U, 4U), 4U);
   EXPECT_EQ(DivCeil(17U, 4U), 5U);

@@ -17,7 +17,7 @@ RUN make -j4
 
 RUN ctest -V
 
-COPY example /app/example
+COPY examples /app/examples
 WORKDIR /app
 
 RUN pytest

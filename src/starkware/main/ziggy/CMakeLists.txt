@@ -1,0 +1,5 @@
+add_executable(ziggy_prover ziggy_prover_main.cc)
+target_link_libraries(ziggy_prover ziggy_air prover_main_helper flag_validators starkware_common ziggy_statement)
+
+add_executable(ziggy_verifier ziggy_verifier_main.cc)
+target_link_libraries(ziggy_verifier ziggy_air verifier_main_helper flag_validators starkware_common ziggy_statement)

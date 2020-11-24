@@ -1,0 +1,6 @@
+add_library(ziggy_statement ziggy_statement.cc)
+target_link_libraries(ziggy_statement ziggy_air json)
+
+add_executable(ziggy_statement_test ziggy_statement_test.cc)
+target_link_libraries(ziggy_statement_test ziggy_statement ziggy_air json starkware_gtest)
+add_test(ziggy_statement_test ziggy_statement_test)

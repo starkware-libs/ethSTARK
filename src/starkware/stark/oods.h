@@ -31,7 +31,8 @@ std::pair<CompositionTrace, Coset> BreakCompositionPolynomial(
 std::unique_ptr<Air> CreateBoundaryAir(
     uint64_t trace_length, size_t n_columns,
     std::vector<std::tuple<size_t, ExtensionFieldElement, ExtensionFieldElement>>&&
-        boundary_constraints);
+        boundary_constraints,
+    std::optional<size_t> zero_knowledge_column_index);
 
 /*
   Receives z, a random point from the verifier, and sends the verifier the necessary values it

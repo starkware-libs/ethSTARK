@@ -46,13 +46,10 @@ std::unique_ptr<TableVerifier<FieldElementT>> MakeTableVerifier(
       MakeCommitmentSchemeVerifier(n_columns * FieldElementT::SizeInBytes(), n_rows, channel);
 
   return std::make_unique<TableVerifierImpl<FieldElementT>>(
-      n_columns, UseMovedValue(std::move(packaging_commitment_scheme)), channel);
+      n_columns, TakeOwnershipFrom(std::move(packaging_commitment_scheme)), channel);
 }
 
 std::vector<size_t> DrawFriStepsList(const size_t log_degree_bound, Prng* prng) {
-  if (prng == nullptr) {
-    return {3, 3, 1, 1};
-  }
   std::vector<size_t> res;
   for (size_t curr_sum = 0; curr_sum < log_degree_bound;) {
     res.push_back(prng->UniformInt<size_t>(1, log_degree_bound - curr_sum));
@@ -64,12 +61,12 @@ std::vector<size_t> DrawFriStepsList(const size_t log_degree_bound, Prng* prng) 
 }
 
 StarkParameters GenerateParameters(
-    std::unique_ptr<Air> air, Prng* prng, size_t proof_of_work_bits = 15) {
+    uint64_t original_trace_length, std::unique_ptr<Air> air, Prng* prng,
+    size_t proof_of_work_bits = 15) {
   const size_t trace_length = air->TraceLength();
   uint64_t degree_bound = air->GetCompositionPolynomialDegreeBound() / trace_length;
 
-  const auto log_n_cosets =
-      (prng == nullptr ? 4 : prng->UniformInt<size_t>(Log2Ceil(degree_bound), 6));
+  const auto log_n_cosets = prng->UniformInt<size_t>(Log2Ceil(degree_bound), 6);
   const size_t log_coset_size = Log2Ceil(trace_length);
   const size_t n_cosets = Pow2(log_n_cosets);
   const size_t log_evaluation_domain_size = log_coset_size + log_n_cosets;
@@ -79,8 +76,7 @@ StarkParameters GenerateParameters(
   const std::vector<size_t> fri_step_list = DrawFriStepsList(log_degree_bound, prng);
 
   // The coset offset used by FRI.
-  const BaseFieldElement offset =
-      (prng == nullptr ? BaseFieldElement::One() : BaseFieldElement::RandomElement(prng));
+  const BaseFieldElement offset = BaseFieldElement::RandomElement(prng);
 
   // FRI parameters.
   FriParameters fri_params{
@@ -93,15 +89,14 @@ StarkParameters GenerateParameters(
 
   return StarkParameters(
       n_cosets, trace_length, TakeOwnershipFrom(std::move(air)),
-      UseMovedValue(std::move(fri_params)));
+      UseMovedValue(std::move(fri_params)),
+      /*is_zero_knowledge=*/trace_length != original_trace_length);
 }
 
 class StarkTest : public ::testing::Test {
  public:
-  explicit StarkTest(bool use_random_values = true)
-      : prng(use_random_values ? Prng() : Prng(MakeByteArray<0xca, 0xfe, 0xca, 0xfe>())),
-        channel_prng(use_random_values ? Prng() : Prng(MakeByteArray<0xca, 0xfe, 0xca, 0xfe>())),
-        stark_config(StarkProverConfig::Default()),
+  StarkTest()
+      : stark_config(StarkProverConfig::Default()),
         prover_channel(ProverChannel(channel_prng.Clone())) {
     base_table_prover_factory =
         [this](uint64_t n_segments, uint64_t n_rows_per_segment, size_t n_columns) {
@@ -151,27 +146,36 @@ class StarkTest : public ::testing::Test {
 
 class TestAirStarkTest : public StarkTest {
  public:
-  explicit TestAirStarkTest(bool use_random_values = true)
-      : StarkTest(use_random_values),
-        secret(BaseFieldElement::RandomElement(&(this->prng))),
+  TestAirStarkTest()
+      : secret(BaseFieldElement::RandomElement(&prng)),
         claimed_res(TestAir::PublicInputFromPrivateInput(secret, res_claim_index)),
         stark_params(GenerateParameters(
-            std::make_unique<TestAir>(this->trace_length, res_claim_index, claimed_res),
-            use_random_values ? &(this->prng) : nullptr, 15)) {}
+            trace_length,
+            std::make_unique<TestAir>(
+                trace_length, res_claim_index, claimed_res,
+                /*is_zero_knowledge=*/prng.UniformInt(0, 1) == 1, /*n_queries=*/30),
+            &prng, 15)) {}
 
   const StarkParameters& GetStarkParams() override { return stark_params; }
 
   std::vector<std::byte> GenerateProof() { return GenerateProofWithAnnotations().first; }
 
   std::pair<std::vector<std::byte>, std::vector<std::string>> GenerateProofWithAnnotations() {
-    auto air = TestAir(this->trace_length, res_claim_index, claimed_res);
+    auto air = TestAir(
+        trace_length, res_claim_index, claimed_res, stark_params.is_zero_knowledge,
+        stark_params.fri_params->n_queries);
     StarkProver stark_prover(
-        UseOwned(&(this->prover_channel)), UseOwned(&(this->base_table_prover_factory)),
-        UseOwned(&(this->extension_table_prover_factory)), UseOwned(&GetStarkParams()),
-        UseOwned(&(this->stark_config)));
+        UseOwned(&prover_channel), UseOwned(&base_table_prover_factory),
+        UseOwned(&extension_table_prover_factory), UseOwned(&GetStarkParams()),
+        UseOwned(&stark_config));
 
-    stark_prover.ProveStark(TestAir::GetTrace(secret, trace_length, res_claim_index));
-    return {this->prover_channel.GetProof(), this->prover_channel.GetAnnotations()};
+    Trace trace = air.GetTrace(secret, &prng);
+    if (stark_params.is_zero_knowledge) {
+      trace.AddZeroKnowledgeExtraColumn(&prng);
+    }
+
+    stark_prover.ProveStark(std::move(trace));
+    return {prover_channel.GetProof(), prover_channel.GetAnnotations()};
   }
 
   void SetAir(TestAir air) { stark_params.air = UseMovedValue<TestAir>(std::move(air)); }
@@ -184,96 +188,104 @@ class TestAirStarkTest : public StarkTest {
 
 TEST_F(TestAirStarkTest, Correctness) {
   // Generate proof.
-  const auto proof_annotations_pair = this->GenerateProofWithAnnotations();
+  const auto proof_annotations_pair = GenerateProofWithAnnotations();
 
   // Verify proof.
-  EXPECT_TRUE(this->VerifyProof(proof_annotations_pair.first, proof_annotations_pair.second));
+  EXPECT_TRUE(VerifyProof(proof_annotations_pair.first, proof_annotations_pair.second));
 }
-
-// Derive from StarkTest to call the constructor with use_random_values=false.
-
-class StarkTestConstSeed : public TestAirStarkTest {
- public:
-  StarkTestConstSeed() : TestAirStarkTest(/*use_random_values*/ false) {}
-};
 
 TEST_F(TestAirStarkTest, StarkWithFriProverBadTrace) {
   // Create a trace and corrupt it at exactly one location by incrementing it by one.
-  auto bad_column = this->prng.template UniformInt<size_t>(0, 1);
-  auto bad_index = this->prng.template UniformInt<size_t>(0, this->res_claim_index - 1);
-  Trace trace = TestAir::GetTrace(this->secret, this->trace_length, this->res_claim_index);
+  auto air = TestAir(
+      trace_length, res_claim_index, claimed_res, stark_params.is_zero_knowledge,
+      stark_params.fri_params->n_queries);
+  Trace trace = air.GetTrace(secret, &prng);
+  auto bad_column = prng.template UniformInt<size_t>(0, 1);
+  auto bad_index = prng.template UniformInt<size_t>(0, res_claim_index - 1) *
+                   SafeDiv(trace.Length(), trace_length);
   trace.SetTraceElementForTesting(
       bad_column, bad_index, trace.GetColumn(bad_column).at(bad_index) + BaseFieldElement::One());
 
   // Send the corrupted trace to a STARK prover.
   StarkProver stark_prover(
-      UseOwned(&this->prover_channel), UseOwned(&this->base_table_prover_factory),
-      UseOwned(&this->extension_table_prover_factory), UseOwned(&(this->GetStarkParams())),
-      UseOwned(&this->stark_config));
+      UseOwned(&prover_channel), UseOwned(&base_table_prover_factory),
+      UseOwned(&extension_table_prover_factory), UseOwned(&GetStarkParams()),
+      UseOwned(&stark_config));
+
+  if (stark_params.is_zero_knowledge) {
+    trace.AddZeroKnowledgeExtraColumn(&prng);
+  }
 
   stark_prover.ProveStark(std::move(trace));
-  EXPECT_FALSE(this->VerifyProof(this->prover_channel.GetProof()));
+  EXPECT_FALSE(VerifyProof(prover_channel.GetProof()));
 }
 
 TEST_F(TestAirStarkTest, StarkWithFriProverPublicInputInconsistentWithWitness) {
-  TestAir air(this->trace_length, this->res_claim_index, this->claimed_res);
+  TestAir air(
+      trace_length, res_claim_index, claimed_res, stark_params.is_zero_knowledge,
+      stark_params.fri_params->n_queries);
 
   // Bad claimed element.
-  this->stark_params = GenerateParameters(
+  stark_params = GenerateParameters(
+      trace_length,
       std::make_unique<TestAir>(
-          this->trace_length, this->res_claim_index, this->claimed_res + BaseFieldElement::One()),
-      &(this->prng));
+          trace_length, res_claim_index, claimed_res + BaseFieldElement::One(),
+          stark_params.is_zero_knowledge, stark_params.fri_params->n_queries),
+      &prng);
 
   StarkProver stark_prover(
-      UseOwned(&this->prover_channel), UseOwned(&this->base_table_prover_factory),
-      UseOwned(&this->extension_table_prover_factory), UseOwned(&this->stark_params),
-      UseOwned(&this->stark_config));
+      UseOwned(&prover_channel), UseOwned(&base_table_prover_factory),
+      UseOwned(&extension_table_prover_factory), UseOwned(&stark_params), UseOwned(&stark_config));
 
-  stark_prover.ProveStark(
-      TestAir::GetTrace(this->secret, this->trace_length, this->res_claim_index));
-  EXPECT_FALSE(this->VerifyProof(this->prover_channel.GetProof()));
+  Trace trace = air.GetTrace(secret, &prng);
+  if (stark_params.is_zero_knowledge) {
+    trace.AddZeroKnowledgeExtraColumn(&prng);
+  }
+
+  stark_prover.ProveStark(std::move(trace));
+  EXPECT_FALSE(VerifyProof(prover_channel.GetProof()));
 }
 
 TEST_F(TestAirStarkTest, StarkWithFriProverWrongNumberOfLayers) {
-  this->GetStarkParams().fri_params->fri_step_list = std::vector<size_t>(5, 1);
-  EXPECT_ASSERT(this->GenerateProof(), HasSubstr("FRI parameters do not match"));
+  GetStarkParams().fri_params->fri_step_list = std::vector<size_t>(5, 1);
+  EXPECT_ASSERT(GenerateProof(), HasSubstr("FRI parameters do not match"));
 }
 
 TEST_F(TestAirStarkTest, ChangeProofContent) {
   // Generate proof.
-  const std::vector<std::byte> proof = this->GenerateProof();
+  const std::vector<std::byte> proof = GenerateProof();
 
   // Modify proof.
   std::vector<std::byte> modified_proof = proof;
-  modified_proof[this->prng.template UniformInt<size_t>(0, modified_proof.size() - 1)] ^=
-      std::byte(1);
+  modified_proof[prng.template UniformInt<size_t>(0, modified_proof.size() - 1)] ^= std::byte(1);
 
   // Verify proof.
-  EXPECT_FALSE(this->VerifyProof(modified_proof));
+  EXPECT_FALSE(VerifyProof(modified_proof));
 }
 
 TEST_F(TestAirStarkTest, ShortenProof) {
   // Generate proof.
-  const std::vector<std::byte> proof = this->GenerateProof();
+  const std::vector<std::byte> proof = GenerateProof();
 
   // Modify proof.
   std::vector<std::byte> modified_proof = proof;
   modified_proof.pop_back();
 
   // Verify proof.
-  EXPECT_FALSE(this->VerifyProof(modified_proof));
+  EXPECT_FALSE(VerifyProof(modified_proof));
 }
 
 TEST_F(TestAirStarkTest, ChangeAir) {
   // Generate proof.
-  const std::vector<std::byte> proof = this->GenerateProof();
+  const std::vector<std::byte> proof = GenerateProof();
 
   // Modify AIR.
-  this->SetAir(TestAir(
-      this->trace_length, this->res_claim_index, this->claimed_res + BaseFieldElement::One()));
+  SetAir(TestAir(
+      trace_length, res_claim_index, claimed_res + BaseFieldElement::One(),
+      stark_params.is_zero_knowledge, stark_params.fri_params->n_queries));
 
   // Verify proof.
-  EXPECT_FALSE(this->VerifyProof(proof));
+  EXPECT_FALSE(VerifyProof(proof));
 }
 
 }  // namespace

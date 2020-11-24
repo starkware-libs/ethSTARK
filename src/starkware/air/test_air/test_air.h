@@ -33,8 +33,11 @@ class TestAir : public Air {
   using Builder = typename CompositionPolynomialImpl<TestAir>::Builder;
 
   explicit TestAir(
-      uint64_t trace_length, uint64_t res_claim_index, const BaseFieldElement& claimed_res)
-      : Air(trace_length), res_claim_index_(res_claim_index), claimed_res_(claimed_res) {
+      uint64_t trace_length, uint64_t res_claim_index, const BaseFieldElement& claimed_res,
+      bool is_zero_knowledge, size_t n_queries)
+      : Air(trace_length, is_zero_knowledge ? ComputeSlacknessFactor(trace_length, n_queries) : 1),
+        res_claim_index_(res_claim_index),
+        claimed_res_(claimed_res) {
     ASSERT_RELEASE(
         res_claim_index_ < trace_length, "res_claim_index must be smaller than trace_length.");
   }
@@ -69,8 +72,7 @@ class TestAir : public Air {
     Generates the trace.
     witness is the first element of the sequence.
   */
-  static Trace GetTrace(
-      const BaseFieldElement& witness, uint64_t trace_length, uint64_t res_claim_index);
+  Trace GetTrace(const BaseFieldElement& witness, Prng* prng = nullptr) const;
 
   /*
     Given a witness and an index, generates corresponding public input.

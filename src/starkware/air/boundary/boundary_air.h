@@ -14,6 +14,9 @@ namespace starkware {
   A simple AIR that describes a collection of boundary constraints.
   A boundary constraint has the following form:
     (column_i(x) - y0_i) / (x - x0_i).
+  If zero knowledge is enabled, then there is one unconstrained column that is added as is to the
+  composition polynomial. This column is filled with random values to mask the composition oracle
+  and prevent knowledge leakage.
 */
 class BoundaryAir : public Air {
  public:
@@ -35,12 +38,21 @@ class BoundaryAir : public Air {
   BoundaryAir(
       uint64_t trace_length, size_t n_columns,
       gsl::span<const std::tuple<size_t, ExtensionFieldElement, ExtensionFieldElement>>
-          boundary_conditions)
-      : Air(trace_length), trace_length_(trace_length), n_columns_(n_columns) {
+          boundary_conditions,
+      std::optional<size_t> zero_knowledge_column_index)
+      : Air(trace_length, /*slackness_factor=*/1),
+        trace_length_(trace_length),
+        n_columns_(n_columns),
+        zero_knowledge_column_index_(zero_knowledge_column_index) {
     constraints_.reserve(boundary_conditions.size());
     size_t coeff_idx = 0;
     // Group boundry conditions by the point_x and store them in constraints_.
     for (const auto& [column_index, point_x, point_y] : boundary_conditions) {
+      if (zero_knowledge_column_index_.has_value()) {
+        ASSERT_RELEASE(
+            column_index != zero_knowledge_column_index_,
+            "The blinding column must be unconstrained");
+      }
       // Insert the current boundary condition next to one with the same x or at the end of the
       // list.
       auto it = std::find_if(
@@ -81,7 +93,8 @@ class BoundaryAir : public Air {
         neighbors.size() + composition_neighbors.size() == n_columns_,
         "Wrong number of neighbors.");
     ASSERT_DEBUG(
-        random_coefficients.size() == constraints_.size(), "Wrong number of random coefficients.");
+        random_coefficients.size() == NumRandomCoefficients(),
+        "Wrong number of random coefficients.");
 
     const FieldElementT& point = point_powers[0];
 
@@ -104,14 +117,22 @@ class BoundaryAir : public Air {
         // All constraints with the same constraint.point_x are summed with inner_sum.
         inner_sum += constraint_value;
       } else {
-        // New constraint.point_x, add the old (inner_sum/prev_x) to the outer_sum
-        // and start a new inner_sum.
+        // New constraint.point_x, add the old (inner_sum/prev_x) to the outer_sum and start a new
+        // inner_sum.
         outer_sum += inner_sum / (point - prev_x);
         inner_sum = constraint_value;
         prev_x = constraint.point_x;
       }
     }
     outer_sum += inner_sum / (point - prev_x);
+
+    // Add the unconstrained column as is.
+    if (zero_knowledge_column_index_.has_value()) {
+      ASSERT_DEBUG(
+          zero_knowledge_column_index_ < neighbors.size(),
+          "The blinding column is expected to be a base field column.");
+      outer_sum += neighbors[*zero_knowledge_column_index_];
+    }
 
     return outer_sum;
   }
@@ -129,6 +150,7 @@ class BoundaryAir : public Air {
  private:
   uint64_t trace_length_;
   size_t n_columns_;
+  std::optional<size_t> zero_knowledge_column_index_;
   std::vector<ConstraintData> constraints_;
   std::vector<std::pair<int64_t, uint64_t>> mask_;
 };

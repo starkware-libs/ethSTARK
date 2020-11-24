@@ -67,6 +67,7 @@ constexpr uint64_t SafeDiv(const uint64_t numerator, const uint64_t denominator)
 */
 constexpr uint64_t DivCeil(const uint64_t numerator, const uint64_t denominator) {
   ASSERT_RELEASE(denominator != 0, "The denominator cannot be zero.");
+  ASSERT_RELEASE(numerator + denominator > numerator, "Integer overflow.");
   return (numerator + denominator - 1) / denominator;
 }
 

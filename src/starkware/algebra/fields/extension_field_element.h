@@ -56,6 +56,8 @@ class ExtensionFieldElement : public FieldElementBase<ExtensionFieldElement> {
 
   ExtensionFieldElement operator+(const ExtensionFieldElement& rhs) const;
   ExtensionFieldElement operator+(const BaseFieldElement& rhs) const;
+  template <typename FieldElementT>
+  ExtensionFieldElement operator+=(const FieldElementT& rhs);
 
   ExtensionFieldElement operator-(const ExtensionFieldElement& rhs) const;
   ExtensionFieldElement operator-(const BaseFieldElement& rhs) const;

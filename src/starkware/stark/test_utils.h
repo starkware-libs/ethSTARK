@@ -18,7 +18,7 @@ std::unique_ptr<TableVerifier<FieldElementT>> MakeTableVerifier(
       MakeCommitmentSchemeVerifier(n_columns * FieldElementT::SizeInBytes(), n_rows, channel);
 
   return std::make_unique<TableVerifierImpl<FieldElementT>>(
-      n_columns, UseMovedValue(std::move(commitment_scheme_verifier)), channel);
+      n_columns, TakeOwnershipFrom(std::move(commitment_scheme_verifier)), channel);
 }
 
 }  // namespace starkware

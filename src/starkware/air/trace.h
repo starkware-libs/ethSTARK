@@ -66,6 +66,30 @@ class TraceBase {
     values_[column][index] = field_element;
   }
 
+  /*
+    Spaces the trace with random values, making each column slackness_factor times longer.
+  */
+  void AddZeroKnowledgeSlackness(size_t slackness_factor, Prng* prng) {
+    for (auto& column : values_) {
+      std::vector<FieldElementT> replacement;
+      replacement.reserve(column.size() * slackness_factor);
+      for (auto& value : column) {
+        replacement.push_back(value);
+        for (size_t i = 0; i < slackness_factor - 1; ++i) {
+          replacement.push_back(FieldElementT::RandomElement(prng));
+        }
+      }
+      column = replacement;
+    }
+  }
+
+  /*
+    Adds another column, filled with random values.
+  */
+  void AddZeroKnowledgeExtraColumn(Prng* prng) {
+    values_.emplace_back(prng->RandomFieldElementVector<FieldElementT>(values_[0].size()));
+  }
+
  private:
   TraceBase() = default;
 

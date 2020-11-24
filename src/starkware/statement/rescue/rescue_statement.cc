@@ -28,8 +28,9 @@ RescueStatement::RescueStatement(
   }
 }
 
-const Air& RescueStatement::GetAir() {
-  air_ = std::make_unique<RescueAir>(output_, chain_length_);
+const Air& RescueStatement::GetAir(bool is_zero_knowledge, size_t n_queries) {
+  air_ = std::make_unique<RescueAir>(output_, chain_length_, is_zero_knowledge, n_queries);
+  is_zero_knowledge_ = is_zero_knowledge;
   return *air_;
 }
 
@@ -58,13 +59,35 @@ const std::vector<std::byte> RescueStatement::GetInitialHashChainSeed() const {
   return randomness_seed;
 }
 
-Trace RescueStatement::GetTrace() const {
+const std::vector<std::byte> RescueStatement::GetZeroKnowledgeHashChainSeed() const {
+  using std::literals::string_literals::operator""s;
+  const std::string rescue_string = "Rescue hash chain private seed\x00"s;
+  const size_t num_element_bytes = BaseFieldElement::SizeInBytes();
+  const size_t witness_size = num_element_bytes * RescueAir::kWordSize * (chain_length_ + 1);
+  std::vector<std::byte> randomness_seed(rescue_string.size() + witness_size);
+  std::transform(rescue_string.begin(), rescue_string.end(), randomness_seed.begin(), [](char c) {
+    return std::byte(c);
+  });
+  size_t byte_index = rescue_string.size();
+  for (const auto& word : *witness_) {
+    for (const auto& value : word) {
+      value.ToBytes(gsl::make_span(randomness_seed).subspan(byte_index, num_element_bytes));
+      byte_index += num_element_bytes;
+    }
+  }
+  return randomness_seed;
+}
+
+Trace RescueStatement::GetTrace(Prng* prng) const {
   ASSERT_RELEASE(
       air_ != nullptr,
       "Cannot construct trace without a fully initialized AIR instance. Please call GetAir() prior "
       "to GetTrace().");
   ASSERT_RELEASE(witness_.has_value(), "witness_ must have a value.");
-  return air_->GetTrace(*witness_);
+  if (is_zero_knowledge_) {
+    ASSERT_RELEASE(prng != nullptr, "prng should not be null when using zero knowledge.");
+  }
+  return air_->GetTrace(*witness_, prng);
 }
 
 typename RescueStatement::WitnessT RescueStatement::ParseWitness(const JsonValue& witness) {

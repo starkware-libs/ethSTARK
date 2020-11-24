@@ -83,16 +83,23 @@ class RescueModifyProverOutput(ModifyProverOutput):
         public_input_json['output'][word_idx] = hex(value)
 
 
-def create_prover_input_files(queries, witness, chain_length, output, parameter_file,
-                              private_input_file, public_input_file, prover_config_file):
+def create_prover_input_files(
+    queries, witness, chain_length, output, is_zero_knowledge, parameter_file,
+        private_input_file, public_input_file, prover_config_file):
+    original_trace_length = 2**ceil(log2(chain_length * AIR_HEIGHT * 1.0 / HASHES_PER_INSTANCE))
+    if(is_zero_knowledge):
+        slackness_factor = 2**ceil(log2((original_trace_length + queries + 2.0)
+                                        / original_trace_length))
+    else:
+        slackness_factor = 1
     json.dump({
         'stark': {
             'log_n_cosets': 4,
+            'enable_zero_knowledge': is_zero_knowledge,
             'fri': {
                 'last_layer_degree_bound': 1,
                 'n_queries': queries,
-                'fri_step_list': [1] *
-                ceil(log2(chain_length * AIR_HEIGHT / HASHES_PER_INSTANCE)),
+                'fri_step_list': [0] + [1] * ceil(log2(slackness_factor * original_trace_length)),
                 'proof_of_work_bits': 15
             }
         }
@@ -115,7 +122,7 @@ def create_prover_input_files(queries, witness, chain_length, output, parameter_
 
 
 class Params:
-    def __init__(self, expect_success=True, witness_and_output=None,
+    def __init__(self, expect_success=True, witness_and_output=None, is_zero_knowledge=False,
                  proof_modification=ModifyProverOutput.no_change,
                  claim_modification='no_change'):
         """"
@@ -124,6 +131,7 @@ class Params:
         """
         self.expect_success = expect_success
         self.witness_and_output = witness_and_output
+        self.is_zero_knowledge = is_zero_knowledge
         self.proof_modification = proof_modification
         self.claim_modification = claim_modification
 
@@ -131,7 +139,9 @@ class Params:
 @pytest.mark.parametrize(
     'params', [
         Params(),
+        Params(is_zero_knowledge=True),
         Params(witness_and_output=precomputed_witness_output),
+        Params(witness_and_output=precomputed_witness_output, is_zero_knowledge=True),
         Params(expect_success=False, proof_modification=ModifyProverOutput.remove_last_byte),
         Params(expect_success=False, proof_modification=ModifyProverOutput.empty_proof),
         Params(expect_success=False, proof_modification=ModifyProverOutput.remove_random_byte),
@@ -158,8 +168,9 @@ def test_rescue(params, flavor):
     private_input_file = tempfile.NamedTemporaryFile(mode='w+')
     prover_config_file = tempfile.NamedTemporaryFile(mode='w+')
 
-    create_prover_input_files(queries, witness, chain_length, output, parameter_file,
-                              private_input_file, public_input_file, prover_config_file)
+    create_prover_input_files(
+        queries, witness, chain_length, output, params.is_zero_knowledge, parameter_file,
+        private_input_file, public_input_file, prover_config_file)
 
     prover, verifier = get_prover_and_verifier_from_flavor(flavor)
 

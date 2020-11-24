@@ -83,7 +83,7 @@ std::vector<std::byte> TableVerifierImplTest::GetValidProof(
       MakeCommitmentSchemeProver(size_of_row, n_rows_per_segment, n_segments, &prover_channel);
 
   auto table_prover = std::make_unique<TableProverImpl<BaseFieldElement>>(
-      n_columns, UseOwned(&commitment_scheme_prover), &prover_channel);
+      n_columns, TakeOwnershipFrom(std::move(commitment_scheme_prover)), &prover_channel);
 
   // Start protocol - prover side.
   for (size_t i = 0; i < segment_data.size(); ++i) {
@@ -127,7 +127,7 @@ bool TableVerifierImplTest::VerifyProof(
 
   std::unique_ptr<TableVerifier<BaseFieldElement>> table_verifier =
       std::make_unique<TableVerifierImpl<BaseFieldElement>>(
-          n_columns, UseOwned(&commitment_scheme_verifier), &verifier_channel);
+          n_columns, TakeOwnershipFrom(std::move(commitment_scheme_verifier)), &verifier_channel);
 
   // Start protocol - verifier side.
   table_verifier->ReadCommitment();
@@ -283,7 +283,7 @@ TEST_F(TableVerifierImplTest, AllQueriesAnswered) {
 
   std::unique_ptr<TableVerifier<BaseFieldElement>> table_verifier =
       std::make_unique<TableVerifierImpl<BaseFieldElement>>(
-          kNColumns, UseOwned(&commitment_scheme_verifier), &verifier_channel);
+          kNColumns, TakeOwnershipFrom(std::move(commitment_scheme_verifier)), &verifier_channel);
 
   // Start protocol - verifier side.
   table_verifier->ReadCommitment();
@@ -358,7 +358,7 @@ TEST_F(TableVerifierImplTest, DisjointIntegrityAndDataQueries) {
 
   std::unique_ptr<TableVerifier<BaseFieldElement>> table_verifier =
       std::make_unique<TableVerifierImpl<BaseFieldElement>>(
-          kNColumns, UseOwned(&commitment_scheme_verifier), &verifier_channel);
+          kNColumns, TakeOwnershipFrom(std::move(commitment_scheme_verifier)), &verifier_channel);
 
   // Start protocol - verifier side.
   table_verifier->ReadCommitment();

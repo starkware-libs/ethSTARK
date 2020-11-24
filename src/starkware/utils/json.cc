@@ -3,6 +3,8 @@
 #include <fstream>
 #include <optional>
 
+#include "starkware/utils/to_from_string.h"
+
 namespace starkware {
 
 JsonValue JsonValue::FromJsonCppValue(const Json::Value& value) { return JsonValue(value, "/"); }
@@ -50,9 +52,19 @@ JsonValue JsonValue::operator[](size_t idx) const {
 
 bool JsonValue::HasValue() const { return !value_.isNull(); }
 
+bool JsonValue::AsBool() const {
+  AssertBool();
+  return value_.asBool();
+}
+
 uint64_t JsonValue::AsUint64() const {
   AssertUint64();
   return value_.asUInt64();
+}
+
+void JsonValue::AsBytesFromHexString(gsl::span<std::byte> as_bytes_out) const {
+  const std::string str = AsString();
+  HexStringToBytes(str, as_bytes_out);
 }
 
 size_t JsonValue::AsSizeT() const {
@@ -90,6 +102,11 @@ void JsonValue::AssertInt() const {
   ASSERT_RELEASE(!value_.isNull(), "Missing configuration value: " + path_ + ".");
   ASSERT_RELEASE(
       value_.isIntegral(), "Configuration at " + path_ + " is expected to be an integer.");
+}
+
+void JsonValue::AssertBool() const {
+  ASSERT_RELEASE(!value_.isNull(), "Missing configuration value: " + path_ + ".");
+  ASSERT_RELEASE(value_.isBool(), "Configuration at " + path_ + " is expected to be a boolean.");
 }
 
 void JsonValue::AssertUint64() const {

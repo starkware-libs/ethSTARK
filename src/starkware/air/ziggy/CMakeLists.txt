@@ -1,0 +1,6 @@
+add_library(ziggy_air ziggy_air.cc)
+target_link_libraries(ziggy_air rescue_air_utils composition_polynomial)
+
+add_executable(ziggy_air_test ziggy_air_test.cc)
+target_link_libraries(ziggy_air_test starkware_gtest algebra ziggy_air air_test_utils)
+add_test(ziggy_air_test ziggy_air_test)

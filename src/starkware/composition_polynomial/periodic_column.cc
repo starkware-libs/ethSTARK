@@ -2,13 +2,30 @@
 
 namespace starkware {
 
-PeriodicColumn::PeriodicColumn(gsl::span<const BaseFieldElement> values, uint64_t trace_size)
-    : period_in_trace_(values.size()),
+/*
+  Spaces the values vector with zeroes, making it slackness_factor times longer.
+*/
+std::vector<BaseFieldElement> ExpandColumn(
+    gsl::span<const BaseFieldElement> values, size_t slackness_factor) {
+  std::vector<BaseFieldElement> result;
+  result.reserve(values.size() * slackness_factor);
+  for (auto& value : values) {
+    result.push_back(value);
+    for (size_t i = 0; i < slackness_factor - 1; ++i) {
+      result.push_back(BaseFieldElement::Zero());
+    }
+  }
+  return result;
+}
+
+PeriodicColumn::PeriodicColumn(
+    gsl::span<const BaseFieldElement> values, uint64_t trace_size, size_t slackness_factor)
+    : period_in_trace_(values.size() * slackness_factor),
       n_copies_(SafeDiv(trace_size, period_in_trace_)),
       lde_manager_(
-          Coset(values.size(), BaseFieldElement::One()),
+          Coset(values.size() * slackness_factor, BaseFieldElement::One()),
           /*eval_in_natural_order=*/true) {
-  lde_manager_.AddEvaluation(values);
+  lde_manager_.AddEvaluation(ExpandColumn(values, slackness_factor));
 }
 
 auto PeriodicColumn::GetCoset(const BaseFieldElement& start_point, const size_t coset_size) const

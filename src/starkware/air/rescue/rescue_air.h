@@ -41,15 +41,11 @@ namespace starkware {
 
 class RescueAir : public Air {
  public:
-  static_assert(
-      BaseFieldElement::FieldSize() % 3 == 2, "Base field must not have a third root of unity.");
-  static constexpr uint64_t kCubeInverseExponent =
-      SafeDiv((2 * BaseFieldElement::FieldSize() - 1), 3);  // = (1/3) % (kModulus - 1).
   static constexpr size_t kWordSize = 4;
   static constexpr size_t kHashesPerBatch = 3;
   static constexpr size_t kStateSize = RescueConstants::kStateSize;
   static constexpr size_t kNumRounds = RescueConstants::kNumRounds;
-  static constexpr size_t kBatchHeight = RescueConstants::kBatchHeight;
+  static constexpr size_t kBatchHeight = 32;
   static constexpr size_t kNumColumns = kStateSize;
   static constexpr size_t kNumPeriodicColumns = 2 * kStateSize;
   static constexpr size_t kNumConstraints = 52;
@@ -58,49 +54,22 @@ class RescueAir : public Air {
   using WordT = std::array<BaseFieldElement, kWordSize>;
   using WitnessT = std::vector<WordT>;
 
-  struct State {
-    using VectorT = RescueConstants::VectorT;
-    explicit State(const VectorT& values) : values_(values) {}
-
-    static State Uninitialized() {
-      return State(UninitializedFieldElementArray<BaseFieldElement, kStateSize>());
-    }
-
-    BaseFieldElement& operator[](size_t i) { return values_.at(i); }
-    const BaseFieldElement& operator[](size_t i) const { return values_.at(i); }
-
-    ALWAYS_INLINE State operator*(const State& other) const {
-      return State{VectorT{values_[0] * other.values_[0], values_[1] * other.values_[1],
-                           values_[2] * other.values_[2], values_[3] * other.values_[3],
-                           values_[4] * other.values_[4], values_[5] * other.values_[5],
-                           values_[6] * other.values_[6], values_[7] * other.values_[7],
-                           values_[8] * other.values_[8], values_[9] * other.values_[9],
-                           values_[10] * other.values_[10], values_[11] * other.values_[11]}};
-    }
-
-    VectorT& AsArray() { return values_; }
-
-    /*
-      Returns the third roots of all field elements within a state.
-      Follows an optimized calculation of Pow() with exp=kCubeInverseExponent.
-    */
-    State BatchedThirdRoot() const;
-
-   private:
-    VectorT values_;
-  };
-
   /*
     The public input for the AIR consists of:
     output - the result of the last hash, a tuple of 4 elements (p).
     chain_length - the number of hash invocations in the chain (n).
   */
-  RescueAir(const WordT& output, uint64_t chain_length)
-      : Air(Pow2(Log2Ceil(SafeDiv(chain_length, kHashesPerBatch) * kBatchHeight))),
+  RescueAir(const WordT& output, uint64_t chain_length, bool is_zero_knowledge, size_t n_queries)
+      : Air(Pow2(Log2Ceil(SafeDiv(chain_length, kHashesPerBatch) * kBatchHeight)),
+            is_zero_knowledge
+                ? ComputeSlacknessFactor(
+                      Pow2(Log2Ceil(SafeDiv(chain_length, kHashesPerBatch) * kBatchHeight)),
+                      n_queries)
+                : 1),
         output_(output),
         chain_length_(chain_length) {
     ASSERT_RELEASE(
-        TraceLength() >= SafeDiv(chain_length, kHashesPerBatch) * kBatchHeight,
+        original_trace_length_ >= SafeDiv(chain_length, kHashesPerBatch) * kBatchHeight,
         "Data coset is too small.");
   }
 
@@ -136,7 +105,7 @@ class RescueAir : public Air {
     Generates the trace.
     witness is the sequence of 4-tuples {w_i} such that H(...H(H(w_0, w_1), w_2) ..., w_n) = p.
   */
-  Trace GetTrace(const WitnessT& witness) const;
+  Trace GetTrace(const WitnessT& witness, Prng* prng = nullptr) const;
 
   /*
     Receives a private input/witness, which is a vector of inputs to the hash chain:

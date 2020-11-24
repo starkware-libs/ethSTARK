@@ -18,7 +18,7 @@ JsonValue GetProverConfigJson(size_t constraint_polynomial_task_size = 256);
 */
 JsonValue GetParametersJson(
     uint64_t trace_length, uint64_t log_n_cosets, uint64_t security_bits,
-    uint64_t proof_of_work_bits, const std::vector<size_t>& fri_steps);
+    uint64_t proof_of_work_bits, const std::vector<size_t>& fri_steps, bool is_zero_knowledge);
 
 }  // namespace starkware
 

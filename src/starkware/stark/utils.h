@@ -7,7 +7,8 @@
 namespace starkware {
 
 template <typename FieldElementT>
-TableProverFactory<FieldElementT> GetTableProverFactory(ProverChannel* channel);
+TableProverFactory<FieldElementT> GetTableProverFactory(
+    ProverChannel* channel, bool with_salt = false, Prng* prng = nullptr);
 
 }  // namespace starkware
 

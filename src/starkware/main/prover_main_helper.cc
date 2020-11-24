@@ -50,7 +50,9 @@ void SaveProverContext(
 std::vector<std::byte> ProverMainHelper(
     Statement* statement, const JsonValue& parameters, const JsonValue& stark_config_json,
     const JsonValue& public_input, const std::string& out_file_name, bool generate_annotations) {
-  const Air& air = statement->GetAir();
+  const Air& air = statement->GetAir(
+      parameters["stark"]["enable_zero_knowledge"].AsBool(),
+      parameters["stark"]["fri"]["n_queries"].AsSizeT());
 
   StarkProverConfig stark_config(StarkProverConfig::FromJson(stark_config_json));
 
@@ -61,8 +63,13 @@ std::vector<std::byte> ProverMainHelper(
     channel.DisableAnnotations();
   }
 
+  Prng salts_prng(statement->GetZeroKnowledgeHashChainSeed());
+  // Serialization of "Salts".
+  salts_prng.MixSeedWithBytes(MakeByteArray<0x53, 0x61, 0x6c, 0x74, 0x73>());
+
   TableProverFactory<BaseFieldElement> base_table_prover_factory =
-      GetTableProverFactory<BaseFieldElement>(&channel);
+      GetTableProverFactory<BaseFieldElement>(
+          &channel, stark_params.is_zero_knowledge, &salts_prng);
 
   TableProverFactory<ExtensionFieldElement> extension_table_prover_factory =
       GetTableProverFactory<ExtensionFieldElement>(&channel);
@@ -73,7 +80,15 @@ std::vector<std::byte> ProverMainHelper(
       UseOwned(&extension_table_prover_factory), UseOwned(&stark_params), UseOwned(&stark_config));
   // Generate trace.
   ProfilingBlock profiling_block("Trace generation");
-  Trace trace = statement->GetTrace();
+
+  Prng trace_prng(statement->GetZeroKnowledgeHashChainSeed());
+  // Serialization of "Trace".
+  trace_prng.MixSeedWithBytes(MakeByteArray<0x54, 0x72, 0x61, 0x63, 0x65>());
+  Trace trace = statement->GetTrace(&trace_prng);
+  if (stark_params.is_zero_knowledge) {
+    trace.AddZeroKnowledgeExtraColumn(&trace_prng);
+  }
+
   profiling_block.CloseBlock();
   prover.ProveStark(std::move(trace));
 
