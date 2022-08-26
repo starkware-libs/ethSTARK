@@ -1,0 +1,425 @@
+{
+  "name": "vscode-data-preview",
+  "displayName": "Data Preview",
+  "description": "Data Preview 🈸 extension for importing 📤 viewing 🔎 slicing 🔪 dicing 🎲 charting 📊 & exporting 📥 large JSON array/config, YAML, Apache Arrow, Avro, Parquet & Excel data files",
+  "version": "2.3.0",
+  "icon": "images/data-preview.png",
+  "publisher": "RandomFractalsInc",
+  "author": "Taras Novak",
+  "contributors": [
+    "Taras Novak"
+  ],
+  "license": "Apache-2.0",
+  "readme": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RandomFractals/vscode-data-preview"
+  },
+  "bugs": "https://github.com/RandomFractals/vscode-data-preview/issues",
+  "homepage": "https://github.com/RandomFractals/vscode-data-preview/README.md",
+  "keywords": [
+    "dataViz",
+    "data tools",
+    "data preview",
+    "data schema",
+    "data view",
+    "data viewer",
+    "data inspector 🕵️",
+    "charts",
+    "grid",
+    "editable grid",
+    "graph",
+    "large data",
+    "async data",
+    "http data",
+    "remote data",
+    "data formatter",
+    "data export",
+    "data import",
+    "markdown table",
+    "json array",
+    "json line",
+    "jsonl",
+    "json5",
+    "hjson",
+    "ndjson",
+    "arrow",
+    "avro",
+    "parquet",
+    "config",
+    "env",
+    "properties",
+    "ini",
+    "yaml",
+    "yml",
+    "Excel",
+    "workbook",
+    "spreadsheet",
+    "csv",
+    "tsv",
+    "txt",
+    "tab",
+    "dif",
+    "ods",
+    "xls",
+    "xlsb",
+    "xlsx",
+    "xlsm",
+    "xml",
+    "html"
+  ],
+  "categories": [
+    "Data Science",
+    "Formatters",
+    "Programming Languages",
+    "Visualization"
+  ],
+  "galleryBanner": {
+    "color": "#333",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onCommand:data.preview",
+    "onCommand:data.preview.on.side",
+    "onCommand:data.preview.remote",
+    "onWebviewPanel:data.preview",
+    "onLanguage:json",
+    "onLanguage:json5",
+    "onLanguage:jsonl",
+    "onLanguage:hjson",
+    "onLanguage:arrow",
+    "onLanguage:avro",
+    "onLanguage:parquet",
+    "onLanguage:config",
+    "onLanguage:env",
+    "onLanguage:properties",
+    "onLanguage:ini",
+    "onLanguage:yaml",
+    "onLanguage:md",
+    "onLanguage:csv",
+    "onLanguage:tsv",
+    "onLanguage:excel"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "json",
+        "extensions": [
+          ".json"
+        ],
+        "aliases": [
+          "JSON"
+        ]
+      },
+      {
+        "id": "json5",
+        "extensions": [
+          ".json5"
+        ],
+        "aliases": [
+          "JSON5"
+        ]
+      },
+      {
+        "id": "jsonl",
+        "extensions": [
+          ".jsonl",
+          ".ndjson"
+        ],
+        "aliases": [
+          "JSON Line"
+        ]
+      },
+      {
+        "id": "hjson",
+        "extensions": [
+          ".hjson"
+        ],
+        "aliases": [
+          "HJSON"
+        ]
+      },
+      {
+        "id": "arrow",
+        "extensions": [
+          ".arrow",
+          ".arr"
+        ],
+        "aliases": [
+          "Arrow"
+        ]
+      },
+      {
+        "id": "avro",
+        "extensions": [
+          ".avro"
+        ],
+        "aliases": [
+          "Avro"
+        ]
+      },
+      {
+        "id": "parquet",
+        "extensions": [
+          ".parquet",
+          ".parq"
+        ],
+        "aliases": [
+          "Parquet"
+        ]
+      },
+      {
+        "id": "config",
+        "extensions": [
+          ".config"
+        ],
+        "aliases": [
+          "Configuration"
+        ]
+      },
+      {
+        "id": "env",
+        "extensions": [
+          ".env"
+        ],
+        "aliases": [
+          "Environment"
+        ]
+      },
+      {
+        "id": "properties",
+        "extensions": [
+          ".properties"
+        ],
+        "aliases": [
+          "Properties"
+        ]
+      },
+      {
+        "id": "ini",
+        "extensions": [
+          ".ini"
+        ],
+        "aliases": [
+          "INI"
+        ]
+      },
+      {
+        "id": "yaml",
+        "extensions": [
+          ".yaml",
+          ".yml"
+        ],
+        "aliases": [
+          "YAML"
+        ]
+      },
+      {
+        "id": "csv",
+        "extensions": [
+          ".csv"
+        ],
+        "aliases": [
+          "CSV"
+        ]
+      },
+      {
+        "id": "tsv",
+        "extensions": [
+          ".tsv",
+          ".tab"
+        ],
+        "aliases": [
+          "TSV"
+        ]
+      },
+      {
+        "id": "excel",
+        "extensions": [
+          ".dif",
+          ".ods",
+          ".xls",
+          ".xlsb",
+          ".xlsm",
+          ".xlsx"
+        ],
+        "aliases": [
+          "Excel"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "data.preview",
+        "title": "Preview Data",
+        "category": "Data",
+        "icon": {
+          "light": "./images/data-preview.svg",
+          "dark": "./images/data-preview-dark.svg"
+        }
+      },
+      {
+        "command": "data.preview.on.side",
+        "title": "Preview Data on Side",
+        "category": "Data",
+        "icon": {
+          "light": "./images/data-preview-side.svg",
+          "dark": "./images/data-preview-side-dark.svg"
+        }
+      },
+      {
+        "command": "data.preview.remote",
+        "title": "Preview Remote Data",
+        "category": "Data"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "data.preview",
+        "key": "ctrl+shift+d"
+      },
+      {
+        "command": "data.preview.on.side",
+        "key": "ctrl+alt+s d"
+      },
+      {
+        "command": "data.preview.remote",
+        "key": "ctrl+shift+r"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "data.preview",
+          "when": "resourceFilename =~ /.*\\.(json|jsonl|json5|hjson|ndjson|arrow|arr|avro|parquet|parq|config|env|properties|ini|yaml|yml|md|csv|tsv|txt|tab|dif|ods|xls|xlsb|xlsm|xlsx|xml|html)/",
+          "group": "navigation"
+        },
+        {
+          "command": "data.preview.on.side",
+          "when": "resourceFilename =~ /.*\\.(json|jsonl|json5|hjson|ndjson|arrow|arr|avro|parquet|parq|config|env|properties|ini|yaml|yml|md|csv|tsv|txt|tab|dif|ods|xls|xlsb|xlsm|xlsx|xml|html)/",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "data.preview",
+          "when": "resourceFilename =~ /.*\\.(json|jsonl|json5|hjson|ndjson|arrow|arr|avro|parquet|parq|config|env|properties|ini|yaml|yml|md|csv|tsv|txt|tab|dif|ods|xls|xlsb|xlsm|xlsx|xml|html)/",
+          "group": "navigation"
+        },
+        {
+          "command": "data.preview.on.side",
+          "when": "resourceFilename =~ /.*\\.(json|jsonl|json5|hjson|ndjson|arrow|arr|avro|parquet|parq|config|env|properties|ini|yaml|yml|md|csv|tsv|txt|tab|dif|ods|xls|xlsb|xlsm|xlsx|xml|html)/",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "data.preview",
+          "when": "resourceFilename =~ /.*\\.(json|jsonl|json5|hjson|ndjson|arrow|arr|avro|parquet|parq|config|env|properties|ini|yaml|yml|md|csv|tsv|txt|tab|dif|ods|xls|xlsb|xlsm|xlsx|xml|html)/",
+          "group": "navigation"
+        },
+        {
+          "command": "data.preview.on.side",
+          "when": "resourceFilename =~ /.*\\.(json|jsonl|json5|hjson|ndjson|arrow|arr|avro|parquet|parq|config|env|properties|ini|yaml|yml|md|csv|tsv|txt|tab|dif|ods|xls|xlsb|xlsm|xlsx|xml|html)/",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Data Preview",
+      "properties": {
+        "data.preview.theme": {
+          "type": "string",
+          "enum": [
+            "light",
+            "dark",
+            "dense.light",
+            "dense.dark",
+            "vaporwave"
+          ],
+          "default": "dark",
+          "description": "Data Preview UI Theme: light, dark, dense.light, dense.dark || vaporwave (hight constrast blue theme)"
+        },
+        "data.preview.charts.plugin": {
+          "type": "string",
+          "enum": [
+            "d3fc",
+            "highcharts"
+          ],
+          "default": "d3fc",
+          "description": "Data Preview Charts library to use: d3fc || highcharts"
+        },
+        "data.preview.create.json.files": {
+          "type": "boolean",
+          "default": false,
+          "description": "Create '.json' data files for Arrow, Avro, Parquet & Excel binary data formats"
+        },
+        "data.preview.create.json.schema": {
+          "type": "boolean",
+          "default": true,
+          "description": "Create '.schema.json' file for Arrow & Avro metadata binary data formats"
+        },
+        "data.preview.openSavedFileEditor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Opens created data file Content Editor on Data Save."
+        },
+        "data.preview.log.level": {
+          "type": "string",
+          "enum": [
+            "info",
+            "debug"
+          ],
+          "default": "info",
+          "description": "Data Preview run log level: info || debug"
+        }
+      }
+    }
+  },
+  "engines": {
+    "vscode": "^1.49.0",
+    "node": ">=10.2.0"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc --skipLibCheck -p ./",
+    "lint": "eslint src --ext ts",
+    "watch": "tsc -watch --skipLibCheck -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.3",
+    "@types/mocha": "^8.0.3",
+    "@types/node": "^14.11.2",
+    "@types/vscode": "^1.49.0",
+    "eslint": "^7.10.0",
+    "@typescript-eslint/parser": "^4.2.0",
+    "@typescript-eslint/eslint-plugin": "^4.2.0",
+    "typescript": "^4.0.3",
+    "glob": "^7.1.6",
+    "mocha": "^8.1.3",
+    "vscode-test": "^1.4.0"
+  },
+  "dependencies": {
+    "@finos/perspective": "^0.4.0",
+    "@finos/perspective-viewer": "^0.4.0",
+    "@finos/perspective-viewer-d3fc": "^0.4.0",
+    "@finos/perspective-viewer-highcharts": "^0.4.0",
+    "@finos/perspective-viewer-hypergrid": "^0.4.0",
+    "apache-arrow": "^0.15.1",
+    "avsc": "^5.4.22",
+    "hjson": "^3.2.1",
+    "js-yaml": "^3.14.0",
+    "json5": "^2.1.3",
+    "jsonc-parser": "2.3.1",
+    "json-spread": "0.3.2",
+    "parquets": "^0.10.10",
+    "properties": "^1.2.1",
+    "snappy": "^6.3.5",
+    "superagent": "^6.1.0",
+    "xlsx": "^0.16.7"
+  }
+}
